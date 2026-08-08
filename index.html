@@ -234,6 +234,8 @@ function dispatch(a,x,y){
     'changeName':()=>changeName(),
     'pickGift':()=>pickGift(x,y),
     'cancelGift':()=>cancelGift(x,y),
+    'giftMoney':()=>giftMoney(x,y),
+    'confirmMoneyGift':()=>confirmMoneyGift(x,y),
     'reopenConfirm':()=>reopenConfirm(x,y),
     'setType':()=>setType(x),
     'detectLocation':()=>detectLocation(),
@@ -622,6 +624,7 @@ async function renderOwner(code){
       </div>
       <button data-a="addGift" data-x="${esc(code)}">Agregar a la lista</button>
     </div>
+    ${moneyDonationsSection(data)}
     ${addrRequestsSection(data,code)}
     <div class="card">
       <h3 style="margin:0 0 10px">Regalos en la lista (${data.gifts.length})</h3>
@@ -634,6 +637,24 @@ async function renderOwner(code){
   window._ownerTimer=setTimeout(async()=>{
     if(getHash().o===code){ const d=await sGet('ev:'+code); if(d){ const el=document.querySelector('.card:last-of-type'); if(el)el.innerHTML='<h3 style="margin:0 0 10px">Regalos en la lista ('+d.gifts.length+')</h3>'+ownerGiftList(d,code); } }
   },5000);
+}
+
+function moneyDonationsSection(data){
+  const donations=(data.moneyDonations||[]);
+  if(!donations.length) return '';
+  return `
+    <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
+      <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1b4332">
+        💸 Transferencias recibidas (${donations.length})
+      </p>
+      ${donations.map(d=>`
+        <div style="border:1px solid #a8d5b5;border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">
+          <p style="margin:0 0 2px;font-size:.9rem;font-weight:700">${esc(d.gifterName)}</p>
+          <p style="margin:0;font-size:.78rem;color:var(--muted)">
+            Para: ${esc(d.giftName)} · Monto: <b>${esc(d.amount)}</b>
+          </p>
+        </div>`).join('')}
+    </div>`;
 }
 
 function addrRequestsSection(data,code){
@@ -792,7 +813,14 @@ function guestGiftList(data,code){
       statusLabel=`<div class="claimed" style="color:#b07d00">⏳ Ya fue reservado para regalo</div>`;
     let actionBtn='';
     if(!taken){
-      actionBtn=`<button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir</button>`;
+      actionBtn=`
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir regalo</button>
+          ${g.allowMoney&&data.alias?`<button class="sm" data-a="giftMoney" data-x="${esc(code)}" data-y="${esc(g.id)}"
+            style="background:#fff;color:var(--accent);border:1.5px solid var(--accent);font-size:.78rem">
+            💸 Regalar el valor estimado
+          </button>`:''}
+        </div>`;
     } else if(isMe && !confirmed){
       // Es mío pero sin confirmar: muestro dos botones
       actionBtn=`
@@ -866,6 +894,72 @@ async function reopenConfirm(code,gid){
     </div>
   </div>`;
   document.body.appendChild(modal);
+}
+
+async function giftMoney(code,gid){
+  const data=await sGet('ev:'+code);
+  const g=data&&data.gifts.find(x=>x.id===gid);
+  if(!data||!g||!data.alias)return;
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal">
+    <h3>💸 Regalar el valor estimado para: ${esc(g.name)}</h3>
+    ${g.price?`<p style="margin:0 0 8px;font-size:.85rem;background:#fff3cd;border-radius:6px;padding:8px;text-align:center">
+      Valor estimado del regalo: <b>${esc(g.price)}</b>
+    </p>`:''}
+    <p style="font-size:.82rem;color:var(--muted);margin:0 0 12px;line-height:1.5">
+      1️⃣ Copiá el alias y hacé la transferencia desde tu banco o Mercado Pago.<br>
+      2️⃣ Después volvé acá y avisale al organizador que transferiste.
+    </p>
+    <div style="background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
+      <p style="margin:0 0 6px;font-size:.78rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
+      <p style="font-size:1.1rem;font-weight:800;letter-spacing:1px;margin:0 0 10px">💳 ${esc(data.alias)}</p>
+      <button data-a="copyText" data-x="${esc(data.alias)}"
+        style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
+        📋 Copiar alias
+      </button>
+    </div>
+    <p style="font-size:.82rem;font-weight:600;margin:0 0 6px">¿Ya hiciste la transferencia?</p>
+    <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Dejá tu nombre para avisarle a ${esc(data.owner)}.</p>
+    <input id="moneyGifterName" placeholder="Tu nombre" value="${esc(guestName)}" style="margin-bottom:10px">
+    <button data-a="confirmMoneyGift" data-x="${esc(code)}" data-y="${esc(g.id)}"
+      style="width:100%;background:var(--accent);padding:12px;font-size:.95rem">
+      ✅ Avisarle que ya transferí
+    </button>
+    <button data-a="closeModal" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--line)">
+      Cerrar
+    </button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmMoneyGift(code,gid){
+  const name=((document.getElementById('moneyGifterName')||{}).value||guestName||'').trim();
+  if(!name){alert('Escribí tu nombre para avisarle al organizador.');return;}
+  const data=await sGet('ev:'+code);
+  const g=data&&data.gifts.find(x=>x.id===gid);
+  if(!data||!g)return;
+  if(!data.moneyDonations) data.moneyDonations=[];
+  data.moneyDonations.push({
+    id:uid(), gifterName:name, giftName:g.name,
+    giftId:gid, amount:g.price||'(no especificado)', timestamp:Date.now()
+  });
+  await sSet('ev:'+code,data);
+  // Mostrar confirmación
+  const modal=document.querySelector('.modal');
+  if(modal) modal.innerHTML=`
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+      <p style="font-size:1rem;font-weight:700;color:#1b4332;margin:0 0 8px">¡Gracias ${esc(name)}!</p>
+      <p style="font-size:.85rem;color:var(--muted);margin:0 0 16px;line-height:1.5">
+        ${esc(data.owner)} fue notificado/a de que transferiste para <b>${esc(g.name)}</b>.<br>
+        ¡Muy generoso de tu parte! 💚
+      </p>
+      <button data-a="closeAndRefresh" data-x="${esc(code)}"
+        style="width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:8px;font-size:.9rem;cursor:pointer">
+        Cerrar
+      </button>
+    </div>`;
 }
 
 async function cancelGift(code,gid){
@@ -1104,12 +1198,13 @@ async function finalConfirm(code,gid){
         </button>
       </div>` : '';
     // Sección de pedido de dirección anónima (sin revelar quién pide)
-    const requestSection=hasAddresses?`
+    const requestSection=true?`
       <div style="margin-top:12px;border:1.5px solid var(--line);border-radius:12px;padding:14px">
         <p style="margin:0 0 6px;font-size:.92rem;font-weight:700">📦 ¿Querés enviarlo físicamente?</p>
+        ${!hasAddresses?`<p style="margin:0 0 8px;font-size:.78rem;color:#c0392b">El organizador todavía no cargó direcciones de envío.</p>`:`
         <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);line-height:1.5">
-          Dejá tu nombre y contacto (teléfono, WhatsApp, etc.) y elegí qué tipo de dirección necesitás.<br>
-          El organizador va a ver tu pedido y se va a contactar con vos.
+          Dejá tu nombre y contacto y elegí qué tipo de dirección necesitás.<br>
+          El organizador va a ver tu pedido y se contactará con vos.
         </p>
         <label style="font-size:.78rem">Tu nombre y contacto (obligatorio)</label>
         <input id="reqContact" placeholder="Ej: María — +54 11 1234-5678" style="margin-bottom:10px">
@@ -1122,7 +1217,7 @@ async function finalConfirm(code,gid){
             style="padding:12px 8px;font-size:.82rem;border-radius:10px;background:#5c7a52">
             📮 Pedir correo postal
           </button>
-        </div>
+        </div>`}
       </div>` : '';
     if(area){
       area.innerHTML=`
@@ -1211,7 +1306,7 @@ function buildAliasSection(data, g){
   if(!data.alias || !g.allowMoney) return '';
   return `
     <div style="margin-top:10px;background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:12px;text-align:center">
-      <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1b4332">💸 Opción: Regalar el dinero</p>
+      <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1b4332">💸 Opción: Regalar el valor estimado</p>
       ${g.price?`<p style="margin:0 0 8px;font-size:.78rem;color:#2d6a4f">Precio estimado: <b>${esc(g.price)}</b></p>`:''}
       <div style="background:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px;font-size:1rem;font-weight:700;letter-spacing:1px;margin-bottom:8px">
         💳 ${esc(data.alias)}
