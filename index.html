@@ -193,6 +193,7 @@ function dispatch(a,x,y){
     'changeName':()=>changeName(),
     'pickGift':()=>pickGift(x,y),
     'cancelGift':()=>cancelGift(x,y),
+    'reopenConfirm':()=>reopenConfirm(x,y),
     'setType':()=>setType(x),
     'detectLocation':()=>detectLocation(),
     'closeModal':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); },
@@ -450,9 +451,12 @@ async function renderOwner(code){
     </div>
     <div class="card">
       <h3 style="margin:0 0 10px">Agregar regalo</h3>
-      <input id="newName" placeholder="Nombre del regalo o libro">
-      <label>Link donde comprarlo (opcional — podés poner Amazon, Mercado Libre, etc.)</label>
-      <input id="newLink" placeholder="https://...">
+      <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
+        💡 <b>Tip:</b> Cuanto más detallés el regalo (marca, modelo, color, talle), más fácil le va a ser a quien lo compre. Si encontraste el producto online, pegá el link directo.
+      </div>
+      <input id="newName" placeholder="Ej: Lavarropa Samsung 8kg color blanco">
+      <label>Link del producto exacto (muy recomendado)</label>
+      <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
       <div style="display:flex;gap:16px;margin-bottom:10px;">
         <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">Físico</label>
         <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">Digital</label>
@@ -584,8 +588,22 @@ function guestGiftList(data,code){
     else if(taken)
       statusLabel=`<div class="claimed" style="color:#b07d00">⏳ Ya fue reservado para regalo</div>`;
     let actionBtn='';
-    if(!taken) actionBtn=`<button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir</button>`;
-    else if(isMe && !confirmed) actionBtn=`<button class="ghost sm" data-a="cancelGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Cancelar</button>`;
+    if(!taken){
+      actionBtn=`<button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir</button>`;
+    } else if(isMe && !confirmed){
+      // Es mío pero sin confirmar: muestro dos botones
+      actionBtn=`
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button class="sm" data-a="reopenConfirm" data-x="${esc(code)}" data-y="${esc(g.id)}"
+            style="background:var(--accent);color:#fff;white-space:nowrap">
+            ✅ Confirmar regalo
+          </button>
+          <button class="ghost sm" data-a="cancelGift" data-x="${esc(code)}" data-y="${esc(g.id)}"
+            style="color:#c0392b;border-color:#c0392b;font-size:.72rem">
+            Cancelar reserva
+          </button>
+        </div>`;
+    }
     return `
       <div class="gift${taken?' taken':''}">
         <div style="flex:1">
@@ -613,6 +631,38 @@ function changeName(){
   guestName='';
   try{localStorage.removeItem('gn:'+_currentGuestCode);}catch(e){}
   renderGuest(getHash().g||'');
+}
+
+async function reopenConfirm(code,gid){
+  // Abre el modal directo en el paso 2 (ya está reservado, solo falta confirmar)
+  const data=await sGet('ev:'+code);
+  const g=data&&data.gifts.find(x=>x.id===gid);
+  if(!g||!g.claimedBy) return;
+  const links=buildLinks(g.name,g.claimedCity||'',g.claimedType||'físico',g.manualLink||null);
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal">
+    <h3>🎁 ${esc(g.name)}</h3>
+    <p style="font-size:.83rem;color:var(--green);margin:0 0 8px">✓ Ya lo tenés reservado. Confirmá definitivamente para que nadie más pueda elegirlo.</p>
+    <div class="buy-links">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid var(--accent);':''}">${l.label} ↗</a>`).join('')}</div>
+    <div id="pickLinks"></div>
+    <div style="background:#fff8e1;border:2px solid #f0c040;border-radius:12px;padding:16px;margin-top:14px">
+      <p style="margin:0 0 6px;font-size:1rem;font-weight:700">⚠️ ¿Confirmás este regalo?</p>
+      <p style="margin:0 0 12px;font-size:.83rem;color:#7a5c00;line-height:1.5">
+        <b>Una vez que confirmás, no podés cancelarlo.</b><br>
+        El regalo queda reservado para vos y nadie más puede elegirlo.
+      </p>
+      <button id="finalConfirmBtn" data-a="finalConfirm" data-x="${esc(code)}" data-y="${esc(gid)}"
+        style="background:var(--accent);width:100%;padding:14px;font-size:.95rem;border-radius:10px">
+        🎁 Sí, confirmo que voy a regalar esto
+      </button>
+      <button class="ghost sm" id="confirmPickBtn" data-a="closeAndRefresh" data-x="${esc(code)}"
+        style="width:100%;margin-top:8px;border-radius:10px">
+        Cerrar sin confirmar
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
 }
 
 async function cancelGift(code,gid){
@@ -721,9 +771,11 @@ function detectStore(name){
     return {store:'juguetería',icon:'🧸'};
   if(/plato|vaso|olla|sartén|cubierto|taza|jarra|cacerola|bazar|vajilla|fuente|bowl/.test(n))
     return {store:'bazar',icon:'🏺'};
+  if(/lavarropa|heladera|microondas|cocina|horno|lavavajilla|aire acondicionado|ventilador|aspiradora|plancha|electrodoméstico|cafetera|tostadora|licuadora/.test(n))
+    return {store:'tienda de electrodomésticos',icon:'🏪'};
   if(/ropa|camisa|pantalón|vestido|zapato|zapatilla|calzado|remera|buzo|abrigo|jean/.test(n))
     return {store:'tienda de ropa',icon:'👕'};
-  if(/celular|tablet|computadora|laptop|auricular|parlante|cámara|smartwatch|electrodoméstico/.test(n))
+  if(/celular|tablet|computadora|laptop|auricular|parlante|cámara|smartwatch/.test(n))
     return {store:'tienda de electrónica',icon:'📱'};
   if(/perfume|crema|maquillaje|cosmético|desodorante|colonia/.test(n))
     return {store:'perfumería',icon:'💄'};
