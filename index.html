@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <title>Regálame 🎁</title>
 <style>
 :root{
@@ -82,6 +83,30 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;}
 <body>
 <div class="wrap" id="app">Cargando...</div>
 <script>
+// ── EMAILJS ──
+const EJS_SERVICE  = 'service_kn3y6vo';
+const EJS_TEMPLATE = 'template_uyuzaxr';
+const EJS_KEY      = 'o-_TYLRdXUIX3FZZb';
+(function(){
+  if(typeof emailjs!=='undefined') emailjs.init({publicKey:EJS_KEY});
+})();
+
+async function sendMailAuto(toEmail, toName, subject, body){
+  try{
+    if(typeof emailjs==='undefined') throw new Error('EmailJS no cargó');
+    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
+      to_email: toEmail,
+      to_name:  toName,
+      subject:  subject,
+      message:  body
+    });
+    return true;
+  } catch(e){
+    console.warn('EmailJS error:', e);
+    return false;
+  }
+}
+
 // ── SUPABASE ──
 const SB_URL = 'https://xiapoxfttymlkyvbpamt.supabase.co';
 const SB_KEY = 'sb_publishable_Tws26IuyFraKHQ2MRQOOTQ_rQXY1AdM';
@@ -203,22 +228,26 @@ function dispatch(a,x,y){
     'copyLink':()=>copyText(x),
     'copyText':()=>copyText(x),
     'goToOwner':()=>{ setHash({o:x}); renderOwner(x); },
-    'sendOwnerMail':()=>{
+    'sendOwnerMail':async()=>{
       const [pass,title,owner,email]=y.split('|||');
       const BASE_URL='https://pruebasist.github.io/lista-regalos/';
       const guestLink=BASE_URL+'#g='+x;
-      const subject=encodeURIComponent('Tu lista "'+title+'" está lista 🎁');
-      const body=encodeURIComponent(
+      const body=
         'Hola '+owner+'! Tu lista Regálame ya está creada.\n\n'+
-        '📋 DATOS PRIVADOS DE ORGANIZADOR:\n'+
+        '🔒 TUS DATOS PRIVADOS DE ORGANIZADOR:\n'+
         '• Código: '+x+'\n'+
         '• Contraseña: '+pass+'\n\n'+
         '🔗 LINK PARA COMPARTIR CON TUS AMIGOS:\n'+
         guestLink+'\n\n'+
         'Tus amigos solo necesitan ese link — sin contraseña.\n\n'+
-        'Regálame 🎁'
-      );
-      openMailto('mailto:'+email+'?subject='+subject+'&body='+body);
+        'Regálame 🎁';
+      const btn=document.querySelector('[data-a="sendOwnerMail"]');
+      if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+      const ok=await sendMailAuto(email,owner,'Tu lista "'+title+'" está lista 🎁',body);
+      if(btn){
+        btn.textContent=ok?'✅ Mail enviado':'❌ Error — revisá tu email en EmailJS';
+        btn.style.background=ok?'var(--accent)':'#c0392b';
+      }
     },
     'copyCode':()=>copyText(x),
     'shareNative':()=>shareNative(x,y),
@@ -347,24 +376,20 @@ async function createList(){
   await sSet('ev:'+code, data);
   lsSet('lastOwnerCode', code);
   lsSet('lastOwnerTitle', data.title);
-  // Mandar mail con los datos del organizador si dejó email
+  // Mandar mail automático con EmailJS
   if(email){
     const BASE_URL='https://pruebasist.github.io/lista-regalos/';
     const guestLink=BASE_URL+'#g='+code;
-    const subject=encodeURIComponent('Tu lista "'+data.title+'" está lista 🎁');
-    const body=encodeURIComponent(
-      'Hola! Tu lista Regálame ya está creada.\n\n'+
-      '📋 DATOS DE ORGANIZADOR (guardálos, son privados):\n'+
+    const mailBody=
+      'Hola '+data.owner+'! Tu lista Regálame ya está creada.\n\n'+
+      '🔒 TUS DATOS PRIVADOS DE ORGANIZADOR:\n'+
       '• Código: '+code+'\n'+
-      '• Contraseña de organizador: '+pass+'\n'+
-      '• Link para entrar como organizador: '+BASE_URL+'#o='+code+'\n\n'+
+      '• Contraseña: '+pass+'\n\n'+
       '🔗 LINK PARA COMPARTIR CON TUS AMIGOS:\n'+
       guestLink+'\n\n'+
-      'Tus amigos solo necesitan ese link — no necesitan contraseña.\n\n'+
-      'Regálame 🎁'
-    );
-    const mailto='mailto:'+email+'?subject='+subject+'&body='+body;
-    setTimeout(()=>openMailto(mailto), 800);
+      'Tus amigos solo necesitan ese link — sin contraseña.\n\n'+
+      'Regálame 🎁';
+    sendMailAuto(email, data.owner, 'Tu lista "'+data.title+'" está lista 🎁', mailBody);
   }
   // Mostrar pantalla de confirmación con todos los datos
   setHash({o:code});
