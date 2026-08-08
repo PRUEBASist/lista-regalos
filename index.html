@@ -277,9 +277,12 @@ function renderCreate(){
       <input id="ownerName" placeholder="Ej: Martín">
       <label>Título de la lista (opcional)</label>
       <input id="listTitle" placeholder="Ej: Cumple de Martín">
-      <label>Tu email (para recibir avisos cuando confirmen un regalo)</label>
+      <label>Tu email <span style="font-weight:400;color:var(--muted)">(te mandamos el acceso de organizador)</span></label>
       <input id="ownerEmail" type="email" placeholder="tucorreo@email.com">
-      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">Opcional. Solo para notificaciones — no se comparte.</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">Recomendado — te mandamos el link y tu contraseña privada por mail.</p>
+      <label>Tu contraseña de organizador <span style="font-weight:400;color:var(--muted)">(solo vos la sabés)</span></label>
+      <input id="ownerPass" type="password" placeholder="Elegí algo fácil de recordar, ej: cumple2025">
+      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">🔒 Con esta contraseña podés entrar a editar la lista. Los invitados no la necesitan.</p>
       <button data-a="createList">Crear lista ✓</button>
       <div style="margin-top:8px"><button class="ghost sm" data-a="home">Volver</button></div>
     </div>
@@ -289,17 +292,38 @@ function renderCreate(){
 async function createList(){
   const owner=(document.getElementById('ownerName')||{}).value||'';
   const title=(document.getElementById('listTitle')||{}).value||'';
+  const pass=((document.getElementById('ownerPass')||{}).value||'').trim();
   if(!owner.trim()){alert('Escribí el nombre');return;}
+  if(!pass){alert('Elegí una contraseña de organizador — la necesitás para editar la lista.');return;}
   const email=((document.getElementById('ownerEmail')||{}).value||'').trim();
   const btn=document.querySelector('[data-a="createList"]');
   if(btn){btn.disabled=true;btn.textContent='Creando...';}
   const code=genCode();
   const occType=(document.getElementById('occType')||{}).value||'cumple';
   const occData=OCCASIONS[occType]||OCCASIONS['cumple'];
-  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email||null,gifts:[],created:Date.now()};
+  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email||null,ownerPass:pass,gifts:[],created:Date.now()};
   await sSet('ev:'+code, data);
   lsSet('lastOwnerCode', code);
   lsSet('lastOwnerTitle', data.title);
+  // Mandar mail con los datos del organizador si dejó email
+  if(email){
+    const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+    const guestLink=BASE_URL+'#g='+code;
+    const subject=encodeURIComponent('Tu lista "'+data.title+'" está lista 🎁');
+    const body=encodeURIComponent(
+      'Hola! Tu lista Regálame ya está creada.\n\n'+
+      '📋 DATOS DE ORGANIZADOR (guardálos, son privados):\n'+
+      '• Código: '+code+'\n'+
+      '• Contraseña de organizador: '+pass+'\n'+
+      '• Link para entrar como organizador: '+BASE_URL+'#o='+code+'\n\n'+
+      '🔗 LINK PARA COMPARTIR CON TUS AMIGOS:\n'+
+      guestLink+'\n\n'+
+      'Tus amigos solo necesitan ese link — no necesitan contraseña.\n\n'+
+      'Regálame 🎁'
+    );
+    const mailto='mailto:'+email+'?subject='+subject+'&body='+body;
+    setTimeout(()=>openMailto(mailto), 800);
+  }
   setHash({o:code});
   renderOwner(code);
 }
@@ -310,8 +334,15 @@ function renderJoin(){
     <div class="card">
       <label>Código de la lista</label>
       <input id="joinCode" placeholder="Ej: AB12C" style="text-transform:uppercase;letter-spacing:.1em">
-      <label><input type="checkbox" id="iAmOwner" style="width:auto;margin-right:6px">Soy el organizador de esta lista</label>
-      <button data-a="joinList" style="margin-top:4px">Entrar</button>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="iAmOwner" style="width:auto;margin:0" onchange="document.getElementById('passRow').style.display=this.checked?'block':'none'">
+        Soy el organizador de esta lista
+      </label>
+      <div id="passRow" style="display:none;margin-top:8px">
+        <label>Contraseña de organizador</label>
+        <input id="joinPass" type="password" placeholder="Tu contraseña privada">
+      </div>
+      <button data-a="joinList" style="margin-top:8px">Entrar</button>
       <div style="margin-top:8px"><button class="ghost sm" data-a="home">Volver</button></div>
     </div>
   `);
@@ -330,8 +361,16 @@ async function joinList(){
     alert('No encontré esa lista. Revisá que el código esté bien escrito (5 letras, mayúsculas).');
     return;
   }
-  if(isOwner){ setHash({o:code}); renderOwner(code); }
-  else { setHash({g:code}); renderGuest(code); }
+  if(isOwner){
+    const pass=((document.getElementById('joinPass')||{}).value||'').trim();
+    if(!pass){alert('Escribí tu contraseña de organizador.');return;}
+    if(data.ownerPass && pass!==data.ownerPass){
+      alert('Contraseña incorrecta. Revisá el mail que te llegó cuando creaste la lista.');
+      if(btn){btn.disabled=false;btn.textContent='Entrar';}
+      return;
+    }
+    setHash({o:code}); renderOwner(code);
+  } else { setHash({g:code}); renderGuest(code); }
 }
 
 // ── VISTA ORGANIZADOR ──
