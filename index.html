@@ -220,8 +220,10 @@ function dispatch(a,x,y){
     'copyAddrReq':()=>copyAddrReqMsg(x,y),
     'copyMsg':()=>copyText(x),
     'notifyOwner':()=>openMailto(buildNotifyMailto(x,...y.split('|||'))),
+    'saveAlias':()=>saveAlias(x),
     'saveAddress':()=>saveAddress(x,y),
     'copyAddr':()=>copyAddr(x,y),
+    'copyAddrForReq':()=>copyAddr(x,y),
     'deleteList':()=>deleteList(x),
     'createList':()=>createList(),
     'joinList':()=>joinList(),
@@ -517,6 +519,23 @@ async function renderOwner(code){
       </button>
     </div>
     <div class="card">
+      <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar dinero, poné tu alias de Mercado Pago, CBU o CVU.</p>
+      ${data.alias ? `
+        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.9rem;font-weight:600;text-align:center;letter-spacing:1px">
+          💳 ${esc(data.alias)}
+        </div>
+        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:6px">Copiar alias</button>` :
+        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 6px">No cargaste alias todavía.</p>'}
+      <details style="margin-top:4px">
+        <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.alias?'Editar alias':'Cargar alias'}</summary>
+        <div style="margin-top:8px">
+          <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
+          <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar alias</button>
+        </div>
+      </details>
+    </div>
+    <div class="card">
       <h3 style="margin:0 0 4px">📦 Direcciones de envío <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
       <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">🔒 Solo las ves vos. Las compartís manualmente a quien te pida enviarte un regalo.</p>
 
@@ -592,14 +611,17 @@ async function renderOwner(code){
         💡 <b>Tip:</b> Cuanto más detallés el regalo (marca, modelo, color, talle), más fácil le va a ser a quien lo compre. Si encontraste el producto online, pegá el link directo.
       </div>
       <input id="newName" placeholder="Ej: Lavarropa Samsung 8kg color blanco">
-      <label>Link del producto exacto (muy recomendado)</label>
+      <label>Link del producto <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
       <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
+      <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional — para que puedan regalar el dinero)</span></label>
+      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off">
       <div style="display:flex;gap:16px;margin-bottom:10px;">
         <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">Físico</label>
         <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">Digital</label>
       </div>
       <button data-a="addGift" data-x="${esc(code)}">Agregar a la lista</button>
     </div>
+    ${addrRequestsSection(data,code)}
     <div class="card">
       <h3 style="margin:0 0 10px">Regalos en la lista (${data.gifts.length})</h3>
       ${ownerGiftList(data,code)}
@@ -611,6 +633,46 @@ async function renderOwner(code){
   window._ownerTimer=setTimeout(async()=>{
     if(getHash().o===code){ const d=await sGet('ev:'+code); if(d){ const el=document.querySelector('.card:last-of-type'); if(el)el.innerHTML='<h3 style="margin:0 0 10px">Regalos en la lista ('+d.gifts.length+')</h3>'+ownerGiftList(d,code); } }
   },5000);
+}
+
+function addrRequestsSection(data,code){
+  const reqs=(data.addrRequests||[]);
+  if(!reqs.length) return '';
+  const hasHome=data.addrHome&&data.addrHome.calle;
+  const hasPost=data.addrPost&&data.addrPost.calle;
+  return `
+    <div class="card" style="border:2px solid #f0c040;background:#fffdf0">
+      <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#7a5c00">
+        📬 Solicitudes de dirección (${reqs.length})
+      </p>
+      <div style="background:#fff3cd;border:1px solid #f0c040;border-radius:8px;padding:10px;margin-bottom:12px;font-size:.76rem;color:#7a5c00;line-height:1.5">
+        ⚠️ <b>Atención:</b> Compartir tu dirección es una decisión personal tuya.
+        Regálame no se responsabiliza por el uso que se haga de esa información.
+        Verificá que conocés a la persona antes de compartir.
+      </div>
+      ${reqs.map(r=>`
+        <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">
+          <p style="margin:0 0 4px;font-size:.85rem;font-weight:700">${esc(r.guestName)}</p>
+          <p style="margin:0 0 4px;font-size:.8rem;color:var(--muted)">
+            Contacto: <b>${esc(r.contact)}</b>
+          </p>
+          <p style="margin:0 0 8px;font-size:.78rem;color:var(--muted)">
+            Regalo: ${esc(r.giftName)} · Pide: ${r.type==='home'?'🏠 Domicilio':'📮 Correo postal'}
+          </p>
+          ${r.type==='home'&&hasHome?`
+            <button class="ghost sm" data-a="copyAddrForReq" data-x="home" data-y="${esc(code)}"
+              style="width:100%;margin-bottom:4px">
+              🏠 Copiar domicilio para mandárselo
+            </button>`:
+            r.type==='home'?'<p style="font-size:.75rem;color:#c0392b;margin:0">⚠️ No cargaste domicilio todavía</p>':''}
+          ${r.type==='post'&&hasPost?`
+            <button class="ghost sm" data-a="copyAddrForReq" data-x="post" data-y="${esc(code)}"
+              style="width:100%;margin-bottom:4px">
+              📮 Copiar correo postal para mandárselo
+            </button>`:
+            r.type==='post'?'<p style="font-size:.75rem;color:#c0392b;margin:0">⚠️ No cargaste correo postal todavía</p>':''}
+        </div>`).join('')}
+    </div>`;
 }
 
 function ownerGiftList(data,code){
@@ -644,7 +706,9 @@ async function addGift(code){
   const allowDig=document.getElementById('allowDig')&&document.getElementById('allowDig').checked;
   const data=await sGet('ev:'+code);
   if(!data){alert('No se encontró la lista');return;}
-  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,manualLink:manualLink||null,claimedBy:null});
+  const priceEl=document.getElementById('newPrice');
+  const price=((priceEl||{}).value||'').trim();
+  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,manualLink:manualLink||null,price:price||null,claimedBy:null});
   await sSet('ev:'+code,data);
   renderOwner(code);
 }
@@ -747,6 +811,7 @@ function guestGiftList(data,code){
           <div class="gift-name">${esc(g.name)}</div>
           <div style="margin-top:2px">
             ${g.allowPhys?'<span class="badge">Físico</span>':''}${g.allowDig?'<span class="badge">Digital</span>':''}
+            ${g.price?`<span class="badge" style="background:#fff3cd;color:#7a5c00">💰 ${esc(g.price)}</span>`:''}
           </div>
           ${statusLabel}
         </div>
@@ -780,8 +845,10 @@ async function reopenConfirm(code,gid){
   modal.className='modal-bg';
   modal.innerHTML=`<div class="modal">
     <h3>🎁 ${esc(g.name)}</h3>
+    ${g.price?`<p style="margin:0 0 8px;font-size:.82rem;background:#fff3cd;border-radius:6px;padding:6px 10px">💰 Precio estimado: <b>${esc(g.price)}</b></p>`:''}
     <p style="font-size:.83rem;color:var(--green);margin:0 0 8px">✓ Ya lo tenés reservado. Confirmá definitivamente para que nadie más pueda elegirlo.</p>
     <div class="buy-links">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid var(--accent);':''}">${l.label} ↗</a>`).join('')}</div>
+    ${aliasSection}
     <div id="pickLinks"></div>
     <div style="background:#fff8e1;border:2px solid #f0c040;border-radius:12px;padding:16px;margin-top:14px">
       <p style="margin:0 0 6px;font-size:1rem;font-weight:700">⚠️ ¿Confirmás este regalo?</p>
@@ -824,6 +891,8 @@ async function pickGift(code,gid){
   modal.innerHTML=`
     <div class="modal">
       <h3>${esc(g.name)}</h3>
+      ${g.price?`<p style="margin:0 0 8px;font-size:.82rem;background:#fff3cd;border-radius:6px;padding:6px 10px">💰 Precio estimado: <b>${esc(g.price)}</b></p>`:''}
+      ${aliasSection}
       <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px">Reservando para vos. Nadie más va a poder elegir este regalo.</p>
       ${(g.allowPhys&&g.allowDig)?`
         <label>¿Lo comprás físico o digital?</label>
@@ -978,6 +1047,26 @@ async function confirmPick(code,gid){
     saved=true;
     window._geoLat=null; window._geoLon=null;
     const links=buildLinks(g.name,city,type,g.manualLink||null);
+    const aliasSection=data.alias&&g.price?`
+      <div style="margin-top:10px;background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:12px;text-align:center">
+        <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1b4332">💸 Opción: Regalar el dinero</p>
+        <p style="margin:0 0 8px;font-size:.78rem;color:#2d6a4f">Precio estimado del regalo: <b>${esc(g.price)}</b></p>
+        <div style="background:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px;font-size:1rem;font-weight:700;letter-spacing:1px;margin-bottom:8px">
+          💳 ${esc(data.alias)}
+        </div>
+        <button data-a="copyText" data-x="${esc(data.alias)}"
+          style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.85rem;cursor:pointer">
+          📋 Copiar alias para transferir
+        </button>
+      </div>`:
+      data.alias&&!g.price?`
+      <div style="margin-top:10px;background:#f0f7f0;border:1px solid var(--accent);border-radius:10px;padding:10px;text-align:center">
+        <p style="margin:0 4px;font-size:.82rem;color:#1b4332">💸 También podés regalar dinero · Alias: <b>${esc(data.alias)}</b></p>
+        <button data-a="copyText" data-x="${esc(data.alias)}"
+          style="margin-top:6px;background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:.82rem;cursor:pointer">
+          📋 Copiar alias
+        </button>
+      </div>`:''
     const area=document.getElementById('pickLinks');
     if(area) area.innerHTML=`
       <p style="font-size:.83rem;color:var(--green);margin:10px 0 4px">✓ Reservado provisoriamente. Dónde buscarlo:</p>
@@ -1034,20 +1123,25 @@ async function finalConfirm(code,gid){
         </button>
       </div>` : '';
     // Sección de pedido de dirección anónima (sin revelar quién pide)
-    const requestSection=hasAddresses&&ownerEmail?`
-      <div style="margin-top:10px;border:1px solid var(--line);border-radius:6px;padding:12px">
-        <p style="margin:0 0 4px;font-size:.88rem;font-weight:600">📦 ¿Querés enviarlo físicamente?</p>
-        <p style="margin:0 0 8px;font-size:.8rem;color:var(--muted)">Se le pide la dirección a ${esc(data.owner)} de forma anónima — no va a saber quién pregunta.</p>
-        <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}"
-           style="width:100%;margin-bottom:6px">📬 Pedir dirección de envío</button>
-        <button data-a="copyAddrReq" data-x="${esc(code)}" data-y="${esc(g.id)}"
-           style="display:block;width:100%;background:#fff;color:var(--red-dark);text-align:center;padding:8px;border-radius:4px;font-size:.82rem;border:1px solid var(--line);cursor:pointer">
-          📋 Copiar pedido para WhatsApp
-        </button>
-      </div>` :
-      hasAddresses?`
-      <div style="margin-top:10px;background:#f9f4e8;border:1px solid var(--line);border-radius:6px;padding:10px;font-size:.82rem;color:var(--muted)">
-        📦 Si querés enviar el regalo físicamente, contactá directamente al organizador para pedirle la dirección.
+    const requestSection=hasAddresses?`
+      <div style="margin-top:12px;border:1.5px solid var(--line);border-radius:12px;padding:14px">
+        <p style="margin:0 0 6px;font-size:.92rem;font-weight:700">📦 ¿Querés enviarlo físicamente?</p>
+        <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);line-height:1.5">
+          Dejá tu nombre y contacto (teléfono, WhatsApp, etc.) y elegí qué tipo de dirección necesitás.<br>
+          El organizador va a ver tu pedido y se va a contactar con vos.
+        </p>
+        <label style="font-size:.78rem">Tu nombre y contacto (obligatorio)</label>
+        <input id="reqContact" placeholder="Ej: María — +54 11 1234-5678" style="margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||home"
+            style="padding:12px 8px;font-size:.82rem;border-radius:10px">
+            🏠 Pedir domicilio
+          </button>
+          <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||post"
+            style="padding:12px 8px;font-size:.82rem;border-radius:10px;background:#5c7a52">
+            📮 Pedir correo postal
+          </button>
+        </div>
       </div>` : '';
     if(area){
       area.innerHTML=`
@@ -1099,27 +1193,46 @@ function openMailto(link){
   setTimeout(()=>a.remove(),500);
 }
 
-async function sendAddrRequest(code,gid){
+async function sendAddrRequest(code,combined){
+  const [gid,addrType]=combined.split('|||');
+  const contact=((document.getElementById('reqContact')||{}).value||'').trim();
+  if(!contact){alert('Escribí tu nombre y contacto para que el organizador pueda comunicarse con vos.');return;}
   const data=await sGet('ev:'+code);
   const g=data&&data.gifts.find(x=>x.id===gid);
-  if(!data||!g||!data.ownerEmail){alert('El organizador no dejó su email. Pedile la dirección por otro medio.');return;}
-  const subject=encodeURIComponent(`Alguien quiere enviarte un regalo 🎁`);
-  const body=encodeURIComponent(
-    `Hola ${data.owner}!\n\n`+
-    `Alguien que te va a hacer un regalo quiere enviártelo físicamente.\n`+
-    `¿Podés responder este mail con tu dirección de envío?\n\n`+
-    `¡Gracias! 🎁`
-  );
-  const link=`mailto:${data.ownerEmail}?subject=${subject}&body=${body}`;
-  openMailto(link);
-  // Mostrar confirmación visual en lugar del botón
-  const btn=document.querySelector('[data-a="sendAddrRequest"]');
-  if(btn){
-    btn.disabled=true;
-    btn.textContent='✅ Mail abierto — solo tocá Enviar en tu correo';
-    btn.style.background='#5c7a52';
-    btn.style.color='#fff';
+  if(!data||!g){alert('No se encontró la lista.');return;}
+  // Guardar solicitud en los datos del evento
+  if(!data.addrRequests) data.addrRequests=[];
+  data.addrRequests.push({
+    id:uid(),
+    guestName: guestName||contact,
+    contact:   contact,
+    type:      addrType,
+    giftName:  g.name,
+    timestamp: Date.now()
+  });
+  await sSet('ev:'+code, data);
+  // Mostrar confirmación
+  const reqDiv=document.querySelector('[data-a="sendAddrRequest"]')?.closest('div[style]');
+  if(reqDiv){
+    reqDiv.innerHTML=`
+      <div style="background:#d4edda;border:2px solid var(--accent);border-radius:10px;padding:14px;text-align:center">
+        <p style="margin:0 0 4px;font-size:.95rem;font-weight:700;color:#1b4332">✅ Solicitud enviada</p>
+        <p style="margin:0;font-size:.82rem;color:#2d6a4f;line-height:1.5">
+          El organizador va a ver tu pedido de dirección.<br>
+          Se va a contactar con vos usando el contacto que dejaste.<br>
+          <b>Aguardá su respuesta.</b>
+        </p>
+      </div>`;
   }
+}
+
+async function saveAlias(code){
+  const alias=((document.getElementById('aliasInput')||{}).value||'').trim();
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  data.alias=alias||null;
+  await sSet('ev:'+code,data);
+  renderOwner(code);
 }
 
 async function saveAddress(type,code){
