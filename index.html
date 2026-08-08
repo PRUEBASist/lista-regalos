@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
 <title>Regálame 🎁</title>
 <style>
 :root{
@@ -87,9 +87,10 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;}
 const EJS_SERVICE  = 'service_kn3y6vo';
 const EJS_TEMPLATE = 'template_uyuzaxr';
 const EJS_KEY      = 'o-_TYLRdXUIX3FZZb';
-(function(){
+window.addEventListener('load',function(){
   if(typeof emailjs!=='undefined') emailjs.init({publicKey:EJS_KEY});
-})();
+  else console.warn('EmailJS no cargó');
+});
 
 async function sendMailAuto(toEmail, toName, subject, body){
   try{
