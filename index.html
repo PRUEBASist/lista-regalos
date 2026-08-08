@@ -97,6 +97,9 @@ async function sendMailAuto(toEmail, toName, subject, body){
     await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
       to_email: toEmail,
       to_name:  toName,
+      name:     toName,
+      email:    toEmail,
+      title:    subject,
       subject:  subject,
       message:  body
     });
