@@ -693,11 +693,37 @@ function setType(t){
   if(bd) bd.classList.toggle('active',t==='digital');
 }
 
+// Detecta qué tipo de tienda buscar según el nombre del regalo
+function detectStore(name){
+  const n=name.toLowerCase();
+  if(/libro|novela|cuento|manual|guía|poesía|enciclopedia/.test(n))
+    return {store:'librería',icon:'📚'};
+  if(/juguete|muñeca|barbie|lego|auto a escala|peluche|juego de mesa|puzzle/.test(n))
+    return {store:'juguetería',icon:'🧸'};
+  if(/plato|vaso|olla|sartén|cubierto|taza|jarra|cacerola|bazar|vajilla|fuente|bowl/.test(n))
+    return {store:'bazar',icon:'🏺'};
+  if(/ropa|camisa|pantalón|vestido|zapato|zapatilla|calzado|remera|buzo|abrigo|jean/.test(n))
+    return {store:'tienda de ropa',icon:'👕'};
+  if(/celular|tablet|computadora|laptop|auricular|parlante|cámara|smartwatch|electrodoméstico/.test(n))
+    return {store:'tienda de electrónica',icon:'📱'};
+  if(/perfume|crema|maquillaje|cosmético|desodorante|colonia/.test(n))
+    return {store:'perfumería',icon:'💄'};
+  if(/bicicleta|pelota|tenis|fútbol|básquet|deportivo|gym|fitness/.test(n))
+    return {store:'tienda deportiva',icon:'⚽'};
+  if(/mueble|silla|mesa|sillón|estante|cama|colchón/.test(n))
+    return {store:'mueblería',icon:'🪑'};
+  if(/flor|planta|maceta/.test(n))
+    return {store:'florería',icon:'🌸'};
+  if(/vino|champagne|whisky|cerveza|bebida|gourmet/.test(n))
+    return {store:'vinoteca',icon:'🍷'};
+  // Por defecto: tienda general
+  return {store:'tienda',icon:'🛍️'};
+}
+
 function buildLinks(name,city,type,manualLink){
   const q=encodeURIComponent(name);
   const hasGeo=window._geoLat&&window._geoLon;
   const links=[];
-  // Link manual del organizador (siempre primero si existe)
   if(manualLink){
     links.push({label:'🔗 Link del organizador (recomendado)',url:manualLink,highlight:true});
   }
@@ -706,16 +732,21 @@ function buildLinks(name,city,type,manualLink){
     links.push({label:'📱 Google Play Libros',url:'https://play.google.com/store/search?q='+q+'&c=books'});
     links.push({label:'🔍 Buscar ebook en Google',url:'https://www.google.com/search?q='+encodeURIComponent('comprar ebook '+name)});
   } else {
-    // Con GPS es mucho más preciso
+    const {store,icon}=detectStore(name);
     if(hasGeo){
-      links.push({label:'📍 Librerías más cercanas (Google Maps)',url:`https://www.google.com/maps/search/librería/@${window._geoLat},${window._geoLon},14z`});
-      links.push({label:'📍 Buscar "'+name+'" cerca tuyo',url:`https://www.google.com/maps/search/${q}+librería/@${window._geoLat},${window._geoLon},13z`});
+      links.push({label:icon+' '+store.charAt(0).toUpperCase()+store.slice(1)+' más cercana',
+        url:`https://www.google.com/maps/search/${encodeURIComponent(store)}/@${window._geoLat},${window._geoLon},14z`});
+      links.push({label:'📍 Buscar "'+name+'" cerca tuyo',
+        url:`https://www.google.com/maps/search/${q}+${encodeURIComponent(store)}/@${window._geoLat},${window._geoLon},13z`});
     } else if(city){
-      links.push({label:'🗺️ Librerías en '+city+' (Google Maps)',url:'https://www.google.com/maps/search/'+encodeURIComponent('librería '+city)});
+      links.push({label:icon+' '+store.charAt(0).toUpperCase()+store.slice(1)+' en '+city,
+        url:'https://www.google.com/maps/search/'+encodeURIComponent(store+' '+city)});
+      links.push({label:'📍 Buscar "'+name+'" en '+city,
+        url:'https://www.google.com/maps/search/'+encodeURIComponent(name+' '+store+' '+city)});
     }
     links.push({label:'🛒 MercadoLibre',url:'https://listado.mercadolibre.com.ar/'+q.replace(/%20/g,'-')});
     links.push({label:'🛒 Amazon',url:'https://www.amazon.com/s?k='+q});
-    links.push({label:'🔍 Buscar en Google',url:'https://www.google.com/search?q='+encodeURIComponent('comprar '+name+(city?' '+city:''))});
+    links.push({label:'🔍 Buscar en Google',url:'https://www.google.com/search?q='+encodeURIComponent('comprar '+name+(city?' en '+city:''))});
   }
   return links;
 }
