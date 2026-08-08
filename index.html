@@ -687,13 +687,24 @@ function moneyDonationsSection(data){
       <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1b4332">
         💸 Transferencias recibidas (${donations.length})
       </p>
-      ${donations.map(d=>`
-        <div style="border:1px solid #a8d5b5;border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">
-          <p style="margin:0 0 2px;font-size:.9rem;font-weight:700">${esc(d.gifterName)}</p>
-          <p style="margin:0;font-size:.78rem;color:var(--muted)">
-            Para: ${esc(d.giftName)} · Monto: <b>${esc(d.amount)}</b>
-          </p>
-        </div>`).join('')}
+      ${(()=>{
+        // Agrupar por regalo
+        const byGift={};
+        donations.forEach(d=>{
+          if(!byGift[d.giftId]) byGift[d.giftId]={name:d.giftId,giftName:d.giftName,total:0,list:[]};
+          byGift[d.giftId].total+=(d.amountNum||0);
+          byGift[d.giftId].list.push(d);
+        });
+        return Object.values(byGift).map(g=>`
+          <div style="border:1px solid #a8d5b5;border-radius:10px;padding:12px;margin-bottom:8px;background:#fff">
+            <p style="margin:0 0 6px;font-size:.88rem;font-weight:700">🎁 ${esc(g.giftName)}</p>
+            ${g.list.map(d=>`
+              <p style="margin:0 0 2px;font-size:.8rem;color:#333">
+                • ${esc(d.gifterName)} aportó <b>${esc(d.amount)}</b>
+              </p>`).join('')}
+            ${g.total>0?`<p style="margin:6px 0 0;font-size:.82rem;font-weight:700;color:var(--accent)">Total recibido: $${g.total.toLocaleString('es-AR')}</p>`:''}
+          </div>`).join('');
+      })()}
     </div>`;
 }
 
@@ -879,6 +890,19 @@ function guestGiftList(data,code){
       <div class="gift${taken?' taken':''}">
         <div style="flex:1">
           <div class="gift-name">${esc(g.name)}</div>
+          ${(()=>{
+            const gDonations=(data.moneyDonations||[]).filter(d=>d.giftId===g.id);
+            if(!gDonations.length||!g.price) return '';
+            const total=gDonations.reduce((s,d)=>s+(d.amountNum||0),0);
+            const priceN=parseFloat(g.price.replace(/[^0-9.,]/g,'').replace(',','.'));
+            const pct=priceN>0?Math.min(100,Math.round(total/priceN*100)):0;
+            return `<div style="margin-top:4px;font-size:.75rem;color:var(--accent)">
+              💚 Aportado: <b>$${total.toLocaleString('es-AR')}</b> de ${esc(g.price)}
+              <div style="background:#e0e0e0;border-radius:4px;height:4px;margin-top:3px">
+                <div style="background:var(--accent);height:4px;border-radius:4px;width:${pct}%"></div>
+              </div>
+            </div>`;
+          })()}
           ${statusLabel}
         </div>
         <div style="flex-shrink:0">${actionBtn}</div>
@@ -942,17 +966,26 @@ async function giftMoney(code,gid){
   if(!data||!g||!data.alias)return;
   const modal=document.createElement('div');
   modal.className='modal-bg';
+  // Calcular total aportado
+  const donations = (data.moneyDonations||[]).filter(d=>d.giftId===gid);
+  const totalDonated = donations.reduce((sum,d)=>sum+(parseFloat(d.amountNum)||0),0);
+  const priceNum = g.price ? parseFloat(g.price.replace(/[^0-9.,]/g,'').replace(',','.')) : 0;
+  const remaining = priceNum>0 ? Math.max(0, priceNum-totalDonated) : 0;
+
   modal.innerHTML=`<div class="modal">
-    <h3>💸 Regalar el valor estimado para: ${esc(g.name)}</h3>
-    ${g.price?`<p style="margin:0 0 8px;font-size:.85rem;background:#fff3cd;border-radius:6px;padding:8px;text-align:center">
-      Valor estimado del regalo: <b>${esc(g.price)}</b>
-    </p>`:''}
-    <p style="font-size:.82rem;color:var(--muted);margin:0 0 12px;line-height:1.5">
-      1️⃣ Copiá el alias y hacé la transferencia desde tu banco o Mercado Pago.<br>
-      2️⃣ Después volvé acá y avisale al organizador que transferiste.
-    </p>
+    <h3>💸 Aportar para: ${esc(g.name)}</h3>
+    ${g.price?`
+      <div style="background:#fff3cd;border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">
+        <p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">Valor estimado del regalo</p>
+        <p style="margin:0;font-size:1.1rem;font-weight:800">${esc(g.price)}</p>
+        ${totalDonated>0?`
+          <div style="margin-top:8px;background:#fff;border-radius:6px;padding:6px">
+            <p style="margin:0 0 4px;font-size:.75rem;color:var(--accent)">💚 Ya aportaron: <b>$${totalDonated.toLocaleString('es-AR')}</b></p>
+            ${remaining>0?`<p style="margin:0;font-size:.75rem;color:#c0392b">Falta: <b>$${remaining.toLocaleString('es-AR')}</b></p>`:'<p style="margin:0;font-size:.75rem;color:var(--accent)">✅ ¡El regalo ya está cubierto!</p>'}
+          </div>`:''}
+      </div>`:''}
     <div style="background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
-      <p style="margin:0 0 6px;font-size:.78rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
+      <p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
       <p style="font-size:1.1rem;font-weight:800;letter-spacing:1px;margin:0 0 10px">💳 ${esc(data.alias)}</p>
       <button data-a="copyText" data-x="${esc(data.alias)}"
         style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
@@ -960,11 +993,14 @@ async function giftMoney(code,gid){
       </button>
     </div>
     <p style="font-size:.82rem;font-weight:600;margin:0 0 6px">¿Ya hiciste la transferencia?</p>
-    <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Dejá tu nombre para avisarle a ${esc(data.owner)}.</p>
+    <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Indicá cuánto aportaste y tu nombre.</p>
+    <label style="font-size:.78rem">Monto que transferiste</label>
+    <input id="moneyAmount" placeholder="Ej: 50000" type="number" min="0" style="margin-bottom:8px">
+    <label style="font-size:.78rem">Tu nombre</label>
     <input id="moneyGifterName" placeholder="Tu nombre" value="${esc(guestName)}" style="margin-bottom:10px">
     <button data-a="confirmMoneyGift" data-x="${esc(code)}" data-y="${esc(g.id)}"
       style="width:100%;background:var(--accent);padding:12px;font-size:.95rem">
-      ✅ Avisarle que ya transferí
+      ✅ Confirmar que ya transferí
     </button>
     <button data-a="closeModal" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--line)">
       Cerrar
@@ -980,9 +1016,12 @@ async function confirmMoneyGift(code,gid){
   const g=data&&data.gifts.find(x=>x.id===gid);
   if(!data||!g)return;
   if(!data.moneyDonations) data.moneyDonations=[];
+  const amountInput=document.getElementById('moneyAmount');
+  const amountNum=amountInput?parseFloat(amountInput.value)||0:0;
+  const amountStr=amountNum>0?'$'+amountNum.toLocaleString('es-AR'):'(no especificado)';
   data.moneyDonations.push({
     id:uid(), gifterName:name, giftName:g.name,
-    giftId:gid, amount:g.price||'(no especificado)', timestamp:Date.now()
+    giftId:gid, amount:amountStr, amountNum:amountNum, timestamp:Date.now()
   });
   await sSet('ev:'+code,data);
   // Mostrar confirmación
@@ -992,7 +1031,7 @@ async function confirmMoneyGift(code,gid){
       <div style="font-size:3rem;margin-bottom:12px">🎉</div>
       <p style="font-size:1rem;font-weight:700;color:#1b4332;margin:0 0 8px">¡Gracias ${esc(name)}!</p>
       <p style="font-size:.85rem;color:var(--muted);margin:0 0 16px;line-height:1.5">
-        ${esc(data.owner)} fue notificado/a de que transferiste para <b>${esc(g.name)}</b>.<br>
+        ${esc(data.owner)} fue notificado/a de tu aporte${amountNum>0?' de $'+amountNum.toLocaleString('es-AR'):''} para <b>${esc(g.name)}</b>.<br>
         ¡Muy generoso de tu parte! 💚
       </p>
       <button data-a="closeAndRefresh" data-x="${esc(code)}"
