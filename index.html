@@ -254,13 +254,13 @@ function renderHome(){
   const lastCode = lsGet('lastOwnerCode');
   const lastTitle = lsGet('lastOwnerTitle');
   const lastInfo = lastCode ? `
-    <div class="card" style="background:#f0f7f0;border-color:#5c7a52">
-      <p style="margin:0 0 6px;font-size:.88rem;color:#5c7a52"><b>📋 Tu última lista:</b> ${esc(lastTitle||lastCode)}</p>
-      <p style="margin:0 0 8px;font-size:.8rem;color:var(--muted)">Código: <b>${esc(lastCode)}</b></p>
-      <div style="display:flex;gap:8px">
-        <button data-a="goLastList" style="background:#5c7a52;flex:1">Volver a mi lista</button>
-        <button class="ghost sm" data-a="clearLastList" style="color:#c0392b;border-color:#c0392b">Borrar</button>
-      </div>
+    <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
+      <p style="margin:0 0 4px;font-size:.8rem;font-weight:700;color:var(--accent)">📋 Tenés una lista guardada:</p>
+      <p style="margin:0 0 10px;font-size:.95rem;font-weight:600">${esc(lastTitle||lastCode)}</p>
+      <button data-a="goLastList" style="background:var(--accent);width:100%;margin-bottom:8px">Volver a esa lista</button>
+      <button class="ghost sm danger" data-a="clearLastList" style="width:100%;color:#c0392b;border-color:#c0392b">
+        ✕ No es mi lista — borrar y empezar de cero
+      </button>
     </div>` : '';
   render(`
     <div class="app-logo">
@@ -279,6 +279,7 @@ function renderHome(){
 }
 
 function renderCreate(){
+  setHash({});  // limpiar hash para evitar que cargue lista vieja
   render(`
     <h1>Regálame 🎁</h1>
 
@@ -305,11 +306,11 @@ function renderCreate(){
       </div>
       <input type="hidden" id="occType" value="cumple">
       <label id="ownerLabel">¿Quién festeja?</label>
-      <input id="ownerName" placeholder="Ej: Martín">
+      <input id="ownerName" placeholder="Ej: Martín" autocomplete="off">
       <label>Título de la lista <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-      <input id="listTitle" placeholder="Ej: Cumple de Martín">
+      <input id="listTitle" placeholder="Ej: Cumple de Martín" autocomplete="off">
       <label>Tu email <span style="color:#c0392b">*obligatorio</span></label>
-      <input id="ownerEmail" type="email" placeholder="tucorreo@email.com">
+      <input id="ownerEmail" type="email" placeholder="tucorreo@email.com" autocomplete="email">
       <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 16px">
         Te llegará el link para compartir y tu contraseña privada. No se comparte con nadie.
       </p>
