@@ -355,8 +355,8 @@ async function createList(){
   lsSet('lastOwnerCode', code);
   lsSet('lastOwnerTitle', data.title);
 
-  // Mostrar pantalla de confirmación con todos los datos
-  setHash({o:code});
+  // Mostrar pantalla de confirmación — NO cambiamos hash todavía para no disparar renderOwner
+  setHash({});
   renderCreated(code, data, pass);
 }
 
