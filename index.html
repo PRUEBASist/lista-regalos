@@ -539,65 +539,17 @@ function ownerStepContent(data, code, guestLink, step){
       <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
       <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar alias</button>
     </div>
-    <div class="card">
-      <h3 style="margin:0 0 4px">📦 Direcciones de envío <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">🔒 Solo las ves vos. Las compartís a quien te pida enviarte un regalo.</p>
-      <div style="border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px">
-        <b style="font-size:.85rem">🏠 Domicilio particular</b>
-        ${data.addrHome&&data.addrHome.calle ? `
-          <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
-            ${data.addrHome.nombre?esc(data.addrHome.nombre)+'<br>':''}
-            ${esc(data.addrHome.calle)}<br>
-            ${data.addrHome.ciudad?esc(data.addrHome.ciudad)+(data.addrHome.cp?' — CP: '+esc(data.addrHome.cp):'')+'<br>':''}
-            ${data.addrHome.pais?esc(data.addrHome.pais)+'<br>':''}
-          </div>
-          <button class="ghost sm" data-a="copyAddr" data-x="home" data-y="${esc(code)}">Copiar dirección</button>` :
-          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 4px">No cargada.</p>'}
-        <details style="margin-top:8px">
-          <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.addrHome&&data.addrHome.calle?'Editar domicilio':'+ Cargar domicilio'}</summary>
-          <div style="margin-top:8px">
-            <label>Nombre del destinatario</label>
-            <input id="homeNombre" placeholder="Ej: Agustín García" value="${esc(data.addrHome&&data.addrHome.nombre||'')}">
-            <label>Calle, número, piso, depto</label>
-            <input id="homeCalle" placeholder="Ej: Av. Corrientes 1234, 3°B" value="${esc(data.addrHome&&data.addrHome.calle||'')}">
-            <div style="display:flex;gap:8px">
-              <div style="flex:2"><label>Ciudad</label><input id="homeCiudad" placeholder="Buenos Aires" value="${esc(data.addrHome&&data.addrHome.ciudad||'')}"></div>
-              <div style="flex:1"><label>CP</label><input id="homeCP" placeholder="C1043" value="${esc(data.addrHome&&data.addrHome.cp||'')}"></div>
-            </div>
-            <label>País</label><input id="homePais" placeholder="Argentina" value="${esc(data.addrHome&&data.addrHome.pais||'')}">
-            <label>Notas</label><input id="homeNotas" placeholder="Tocar timbre, entre 9-18hs" value="${esc(data.addrHome&&data.addrHome.notas||'')}">
-            <button data-a="saveAddress" data-x="home" data-y="${esc(code)}" style="margin-top:4px;width:100%">Guardar domicilio</button>
-          </div>
-        </details>
-      </div>
-      <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
-        <b style="font-size:.85rem">📮 Correo postal más cercano</b>
-        ${data.addrPost&&data.addrPost.calle ? `
-          <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
-            ${data.addrPost.nombre?esc(data.addrPost.nombre)+'<br>':''}
-            ${esc(data.addrPost.calle)}<br>
-            ${data.addrPost.ciudad?esc(data.addrPost.ciudad)+(data.addrPost.cp?' — CP: '+esc(data.addrPost.cp):'')+'<br>':''}
-            ${data.addrPost.pais?esc(data.addrPost.pais)+'<br>':''}
-          </div>
-          <button class="ghost sm" data-a="copyAddr" data-x="post" data-y="${esc(code)}">Copiar dirección</button>` :
-          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 4px">No cargada.</p>'}
-        <details style="margin-top:8px">
-          <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.addrPost&&data.addrPost.calle?'Editar correo postal':'+ Cargar correo postal'}</summary>
-          <div style="margin-top:8px">
-            <label>Nombre / sucursal</label>
-            <input id="postNombre" placeholder="Ej: OCA Sucursal Palermo" value="${esc(data.addrPost&&data.addrPost.nombre||'')}">
-            <label>Dirección del correo</label>
-            <input id="postCalle" placeholder="Ej: Thames 1234" value="${esc(data.addrPost&&data.addrPost.calle||'')}">
-            <div style="display:flex;gap:8px">
-              <div style="flex:2"><label>Ciudad</label><input id="postCiudad" placeholder="Buenos Aires" value="${esc(data.addrPost&&data.addrPost.ciudad||'')}"></div>
-              <div style="flex:1"><label>CP</label><input id="postCP" placeholder="C1414" value="${esc(data.addrPost&&data.addrPost.cp||'')}"></div>
-            </div>
-            <label>País</label><input id="postPais" placeholder="Argentina" value="${esc(data.addrPost&&data.addrPost.pais||'')}">
-            <label>Notas</label><input id="postNotas" placeholder="Lun-Vie 9-18hs" value="${esc(data.addrPost&&data.addrPost.notas||'')}">
-            <button data-a="saveAddress" data-x="post" data-y="${esc(code)}" style="margin-top:4px;width:100%">Guardar correo postal</button>
-          </div>
-        </details>
-      </div>
+    <div class="card" style="background:#f9f4e8;border-color:var(--line)">
+      <h3 style="margin:0 0 6px">📦 Envío físico</h3>
+      <p style="font-size:.82rem;color:#555;line-height:1.6;margin:0">
+        Los invitados que quieran enviarte el regalo físicamente pueden solicitarte
+        la dirección desde la app.<br><br>
+        Cuando te llegue una solicitud, la vas a ver en el <b>Paso 1 → Mis regalos</b>
+        con el nombre y contacto de quien pide. Vos les respondés directamente
+        por WhatsApp, teléfono o como prefieras.<br><br>
+        <b>La dirección nunca se guarda en la app</b> — la compartís vos cuando
+        quieras y con quien quieras.
+      </p>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Atrás</button>
@@ -732,18 +684,9 @@ function addrRequestsSection(data,code){
           <p style="margin:0 0 8px;font-size:.78rem;color:var(--muted)">
             Regalo: ${esc(r.giftName)} · Pide: ${r.type==='home'?'🏠 Domicilio':'📮 Correo postal'}
           </p>
-          ${r.type==='home'&&hasHome?`
-            <button class="ghost sm" data-a="copyAddrForReq" data-x="home" data-y="${esc(code)}"
-              style="width:100%;margin-bottom:4px">
-              🏠 Copiar domicilio para mandárselo
-            </button>`:
-            r.type==='home'?'<p style="font-size:.75rem;color:#c0392b;margin:0">⚠️ No cargaste domicilio todavía</p>':''}
-          ${r.type==='post'&&hasPost?`
-            <button class="ghost sm" data-a="copyAddrForReq" data-x="post" data-y="${esc(code)}"
-              style="width:100%;margin-bottom:4px">
-              📮 Copiar correo postal para mandárselo
-            </button>`:
-            r.type==='post'?'<p style="font-size:.75rem;color:#c0392b;margin:0">⚠️ No cargaste correo postal todavía</p>':''}
+          <p style="margin:4px 0 0;font-size:.78rem;color:var(--accent)">
+            📲 Contactá a esta persona directamente para darle la dirección.
+          </p>
         </div>`).join('')}
     </div>`;
 }
@@ -1277,27 +1220,26 @@ async function finalConfirm(code,gid){
         </button>
       </div>` : '';
     // Sección de pedido de dirección anónima (sin revelar quién pide)
-    const requestSection=true?`
+    const requestSection=`
       <div style="margin-top:12px;border:1.5px solid var(--line);border-radius:12px;padding:14px">
         <p style="margin:0 0 6px;font-size:.92rem;font-weight:700">📦 ¿Querés enviarlo físicamente?</p>
-        ${!hasAddresses?`<p style="margin:0 0 8px;font-size:.78rem;color:#c0392b">El organizador todavía no cargó direcciones de envío.</p>`:`
         <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);line-height:1.5">
-          Dejá tu nombre y contacto y elegí qué tipo de dirección necesitás.<br>
-          El organizador va a ver tu pedido y se contactará con vos.
+          Dejá tu nombre y contacto y elegí cómo querés enviar el regalo.<br>
+          El organizador va a ver tu pedido y va a contactarte para darte la dirección.
         </p>
-        <label style="font-size:.78rem">Tu nombre y contacto (obligatorio)</label>
+        <label style="font-size:.78rem">Tu nombre y contacto — teléfono, WhatsApp, etc. (obligatorio)</label>
         <input id="reqContact" placeholder="Ej: María — +54 11 1234-5678" style="margin-bottom:10px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||home"
             style="padding:12px 8px;font-size:.82rem;border-radius:10px">
-            🏠 Pedir domicilio
+            🏠 Enviar al domicilio
           </button>
           <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||post"
             style="padding:12px 8px;font-size:.82rem;border-radius:10px;background:#5c7a52">
-            📮 Pedir correo postal
+            📮 Enviar al correo postal
           </button>
-        </div>`}
-      </div>` : '';
+        </div>
+      </div>`;
     if(area){
       area.innerHTML=`
         <div style="background:#d4edda;border:2px solid var(--accent);border-radius:12px;padding:16px;margin-top:8px;text-align:center">
@@ -1506,8 +1448,10 @@ function showPrivacy(){
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">2. Datos que se recopilan</p>
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
       La app puede guardar los siguientes datos ingresados voluntariamente por el usuario:
-      nombre o apodo, datos de contacto (teléfono, email u otro), dirección postal (opcional),
+      nombre o apodo, datos de contacto (teléfono u otro) para solicitudes de envío,
       alias de transferencia bancaria (opcional) y código de acceso a la lista.<br><br>
+      <b>No se almacenan direcciones postales.</b> El organizador las comparte
+      directamente si lo desea, fuera de la aplicación.<br><br>
       Estos datos se almacenan en <b>Supabase</b>, un servicio de base de datos en la nube
       con servidores en São Paulo, Brasil. Supabase cuenta con cifrado en tránsito (HTTPS)
       y en reposo. No se almacenan contraseñas en texto plano mediante hash.
@@ -1517,7 +1461,10 @@ function showPrivacy(){
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
       Los datos ingresados se usan exclusivamente para el funcionamiento de la lista de regalos.
       <b>No se venden, ceden ni comparten con terceros</b> con fines comerciales ni de ningún otro tipo.
-      No se usan para publicidad ni para perfilar a los usuarios.
+      No se usan para publicidad ni para perfilar a los usuarios.<br><br>
+      <b>Las direcciones postales NO se almacenan en la app.</b> Si un invitado solicita
+      una dirección de envío, el organizador la comparte directamente por fuera de la aplicación
+      (WhatsApp, teléfono, etc.). Regálame no interviene en ese intercambio.
     </p>
 
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">4. Responsabilidad del usuario</p>
