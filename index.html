@@ -530,14 +530,17 @@ function ownerStepContent(data, code, guestLink, step){
       <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
       <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá tu alias de Mercado Pago, CBU o CVU.</p>
       ${data.alias ? `
-        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.9rem;font-weight:600;text-align:center;letter-spacing:1px">
-          💳 ${esc(data.alias)}
+        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
+          ${data.aliasTitular?`<p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">${esc(data.aliasTitular)}</p>`:''}
+          <p style="font-size:.95rem;font-weight:700;letter-spacing:1px;margin:0">💳 ${esc(data.alias)}</p>
         </div>
         <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:8px">Copiar alias</button>` :
         '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 8px">No cargaste alias todavía.</p>'}
-      <label>Tu alias / CBU / CVU</label>
+      <label>Nombre completo del titular</label>
+      <input id="aliasTitular" placeholder="Ej: María García" value="${esc(data.aliasTitular||'')}">
+      <label>Alias / CBU / CVU</label>
       <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
-      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar alias</button>
+      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar</button>
     </div>
     <div class="card" style="background:#f9f4e8;border-color:var(--line)">
       <h3 style="margin:0 0 6px">📦 Envío físico</h3>
@@ -839,11 +842,18 @@ function guestGiftList(data,code){
             const total=gDonations.reduce((s,d)=>s+(d.amountNum||0),0);
             const priceN=parseFloat(g.price.replace(/[^0-9.,]/g,'').replace(',','.'));
             const pct=priceN>0?Math.min(100,Math.round(total/priceN*100)):0;
-            return `<div style="margin-top:4px;font-size:.75rem;color:var(--accent)">
-              💚 Aportado: <b>$${total.toLocaleString('es-AR')}</b> de ${esc(g.price)}
-              <div style="background:#e0e0e0;border-radius:4px;height:4px;margin-top:3px">
-                <div style="background:var(--accent);height:4px;border-radius:4px;width:${pct}%"></div>
+            const moneda=total>=1000||priceN>=1000?'$':'$';
+            return `<div style="margin-top:6px">
+              <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:3px">
+                <span style="color:var(--accent);font-weight:600">💚 Aportado: <b>${moneda}${total.toLocaleString('es-AR')}</b></span>
+                <span style="color:var(--muted)">de ${esc(g.price)}</span>
               </div>
+              <div style="background:#e0e0e0;border-radius:20px;height:8px;overflow:hidden">
+                <div style="background:${pct>=100?'#27ae60':'var(--accent)'};height:8px;border-radius:20px;width:${pct}%;transition:width .3s"></div>
+              </div>
+              <p style="font-size:.7rem;color:${pct>=100?'#27ae60':'var(--muted)'};margin:3px 0 0;text-align:right">
+                ${pct>=100?'✅ ¡Regalo cubierto!':pct+'% completado'}
+              </p>
             </div>`;
           })()}
           ${statusLabel}
@@ -903,6 +913,21 @@ async function reopenConfirm(code,gid){
   document.body.appendChild(modal);
 }
 
+function selectCurrency(cur){
+  document.getElementById('moneyCurrency').value=cur;
+  document.getElementById('btnARS').style.background=cur==='ARS'?'var(--accent)':'#fff';
+  document.getElementById('btnARS').style.color=cur==='ARS'?'#fff':'var(--muted)';
+  document.getElementById('btnUSD').style.background=cur==='USD'?'#2d6a4f':'#fff';
+  document.getElementById('btnUSD').style.color=cur==='USD'?'#fff':'var(--muted)';
+}
+function formatAmount(input){
+  let v=input.value.replace(/[^0-9]/g,'');
+  if(v) input.value=parseInt(v).toLocaleString('es-AR');
+}
+function parseAmount(input){
+  return parseFloat((input.value||'0').replace(/\./g,'').replace(',','.')) || 0;
+}
+
 async function giftMoney(code,gid){
   const data=await sGet('ev:'+code);
   const g=data&&data.gifts.find(x=>x.id===gid);
@@ -928,7 +953,8 @@ async function giftMoney(code,gid){
           </div>`:''}
       </div>`:''}
     <div style="background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
-      <p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
+      ${data.aliasTitular?`<p style="margin:0 0 2px;font-size:.85rem;font-weight:600">${esc(data.aliasTitular)}</p>`:''}
+      <p style="margin:0 0 4px;font-size:.75rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
       <p style="font-size:1.1rem;font-weight:800;letter-spacing:1px;margin:0 0 10px">💳 ${esc(data.alias)}</p>
       <button data-a="copyText" data-x="${esc(data.alias)}"
         style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
@@ -938,7 +964,17 @@ async function giftMoney(code,gid){
     <p style="font-size:.82rem;font-weight:600;margin:0 0 6px">¿Ya hiciste la transferencia?</p>
     <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Indicá cuánto aportaste y tu nombre.</p>
     <label style="font-size:.78rem">Monto que transferiste</label>
-    <input id="moneyAmount" placeholder="Ej: 50000" type="number" min="0" style="margin-bottom:8px">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;flex-shrink:0">
+        <button id="btnARS" onclick="selectCurrency('ARS')"
+          style="padding:8px 12px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:.85rem;cursor:pointer">ARS</button>
+        <button id="btnUSD" onclick="selectCurrency('USD')"
+          style="padding:8px 12px;background:#fff;color:var(--muted);border:none;font-weight:700;font-size:.85rem;cursor:pointer">USD</button>
+      </div>
+      <input id="moneyAmount" placeholder="Ej: 50.000" style="flex:1"
+        oninput="formatAmount(this)">
+    </div>
+    <input type="hidden" id="moneyCurrency" value="ARS">
     <label style="font-size:.78rem">Tu nombre</label>
     <input id="moneyGifterName" placeholder="Tu nombre" value="${esc(guestName)}" style="margin-bottom:10px">
     <button data-a="confirmMoneyGift" data-x="${esc(code)}" data-y="${esc(g.id)}"
@@ -960,8 +996,11 @@ async function confirmMoneyGift(code,gid){
   if(!data||!g)return;
   if(!data.moneyDonations) data.moneyDonations=[];
   const amountInput=document.getElementById('moneyAmount');
-  const amountNum=amountInput?parseFloat(amountInput.value)||0:0;
-  const amountStr=amountNum>0?'$'+amountNum.toLocaleString('es-AR'):'(no especificado)';
+  const currencyEl=document.getElementById('moneyCurrency');
+  const currency=(currencyEl&&currencyEl.value)||'ARS';
+  const amountNum=amountInput?parseAmount(amountInput):0;
+  const symbol=currency==='USD'?'USD $':'$';
+  const amountStr=amountNum>0?symbol+amountNum.toLocaleString('es-AR'):'(no especificado)';
   data.moneyDonations.push({
     id:uid(), gifterName:name, giftName:g.name,
     giftId:gid, amount:amountStr, amountNum:amountNum, timestamp:Date.now()
@@ -1341,11 +1380,13 @@ function buildAliasSection(data, g){
 
 async function saveAlias(code){
   const alias=((document.getElementById('aliasInput')||{}).value||'').trim();
+  const titular=((document.getElementById('aliasTitular')||{}).value||'').trim();
   const data=await sGet('ev:'+code);
   if(!data)return;
   data.alias=alias||null;
+  data.aliasTitular=titular||null;
   await sSet('ev:'+code,data);
-  renderOwner(code);
+  renderOwner(code,2);
 }
 
 async function saveAddress(type,code){
