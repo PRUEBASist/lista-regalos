@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
 <title>Regálame 🎁</title>
 <style>
 :root{
@@ -83,30 +82,40 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;}
 <body>
 <div class="wrap" id="app">Cargando...</div>
 <script>
-// ── EMAILJS ──
+// ── EMAILJS (API REST directa, sin SDK) ──
 const EJS_SERVICE  = 'service_kn3y6vo';
 const EJS_TEMPLATE = 'template_uyuzaxr';
 const EJS_KEY      = 'o-_TYLRdXUIX3FZZb';
-window.addEventListener('load',function(){
-  if(typeof emailjs!=='undefined') emailjs.init({publicKey:EJS_KEY});
-  else console.warn('EmailJS no cargó');
-});
 
 async function sendMailAuto(toEmail, toName, subject, body){
   try{
-    if(typeof emailjs==='undefined') throw new Error('EmailJS no cargó');
-    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
-      to_email: toEmail,
-      to_name:  toName,
-      name:     toName,
-      email:    toEmail,
-      title:    subject,
-      subject:  subject,
-      message:  body
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        service_id:   EJS_SERVICE,
+        template_id:  EJS_TEMPLATE,
+        user_id:      EJS_KEY,
+        template_params: {
+          to_email: toEmail,
+          to_name:  toName,
+          name:     toName,
+          email:    toEmail,
+          title:    subject,
+          subject:  subject,
+          message:  body
+        }
+      })
     });
+    const txt = await res.text();
+    if(!res.ok){
+      console.error('EmailJS error HTTP '+res.status+':', txt);
+      return false;
+    }
+    console.log('EmailJS OK:', txt);
     return true;
   } catch(e){
-    console.warn('EmailJS error:', e);
+    console.error('EmailJS fetch error:', e.message);
     return false;
   }
 }
