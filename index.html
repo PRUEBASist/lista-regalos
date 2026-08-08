@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de regalos</title>
+<style>
+:root{
+  --bg:#f8f8f6;--surface:#ffffff;--ink:#1a1a1a;--ink2:#555;
+  --accent:#2d6a4f;--accent2:#1b4332;--accent-light:#d8f3dc;
+  --line:#e5e5e3;--muted:#888;--warn:#e76f51;--warn-dark:#c1440e;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.5;}
+.wrap{max-width:560px;margin:0 auto;padding:24px 16px 90px;}
+h1{font-size:1.6rem;font-weight:700;margin:0 0 4px;color:var(--ink);}
+.sub{color:var(--muted);font-size:.88rem;margin-bottom:20px;}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;
+  margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--line);}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:11px 18px;
+  font-size:.9rem;font-weight:600;background:var(--accent);color:#fff;
+  transition:all .15s;letter-spacing:.01em;}
+button:hover{background:var(--accent2);transform:translateY(-1px);}
+button:active{transform:translateY(0);}
+button:disabled{background:#ccc;cursor:not-allowed;transform:none;}
+button.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent);}
+button.ghost:hover{background:var(--accent-light);transform:none;}
+button.ghost.danger{color:var(--warn-dark);border-color:var(--warn);}
+button.sm{padding:5px 12px;font-size:.78rem;border-radius:6px;}
+input,select,textarea{font-family:inherit;font-size:.9rem;padding:10px 12px;
+  border:1.5px solid var(--line);border-radius:8px;background:#fff;
+  width:100%;margin-bottom:10px;outline:none;transition:border .15s;color:var(--ink);}
+input:focus,select:focus{border-color:var(--accent);}
+label{font-size:.78rem;font-weight:600;color:var(--ink2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.row{display:flex;gap:10px;}.row>*{flex:1;}
+.gift{display:flex;align-items:flex-start;gap:12px;padding:14px 0;
+  border-bottom:1px solid var(--line);}
+.gift:last-child{border-bottom:none;}
+.gift.taken .gift-name{text-decoration:line-through;color:var(--muted);}
+.gift-name{font-size:.95rem;font-weight:600;line-height:1.3;}
+.badge{display:inline-block;background:var(--accent-light);border-radius:20px;
+  padding:2px 8px;font-size:.68rem;margin-right:4px;color:var(--accent2);font-weight:600;}
+.claimed{font-size:.76rem;color:var(--accent);margin-top:4px;font-weight:500;}
+.codebox{background:var(--accent-light);border:2px dashed var(--accent);border-radius:10px;
+  padding:14px;font-size:1.1rem;text-align:center;margin:8px 0;
+  font-weight:800;color:var(--accent2);letter-spacing:4px;word-break:break-all;}
+.linkbox{font-size:.72rem;word-break:break-all;background:var(--bg);
+  border:1px solid var(--line);padding:8px 10px;border-radius:6px;color:var(--muted);}
+.empty{text-align:center;color:var(--muted);padding:28px;font-size:.88rem;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;
+  align-items:flex-end;justify-content:center;z-index:50;backdrop-filter:blur(2px);}
+.modal{background:#fff;border-radius:20px 20px 0 0;max-width:500px;width:100%;
+  padding:24px 22px 40px;box-shadow:0 -8px 40px rgba(0,0,0,.15);
+  max-height:90vh;overflow-y:auto;}
+.modal h3{margin:0 0 12px;font-size:1.1rem;}
+.buy-links a{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);text-decoration:none;font-size:.84rem;font-weight:500;transition:background .1s;}
+.buy-links a:hover{background:var(--accent-light);}
+.toggle-row{display:flex;gap:8px;margin-bottom:12px;}
+.toggle-row button{flex:1;background:#f0f0ee;color:var(--ink2);}
+.toggle-row button:hover{background:#e5e5e3;transform:none;}
+.toggle-row button.active{background:var(--accent);color:#fff;}
+.alert-warn{background:#fff3f0;border:1px solid #f4a896;border-radius:8px;
+  padding:10px 14px;font-size:.84rem;margin-bottom:12px;color:#7a3025;}
+.home-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.home-btns button{flex:1;min-width:130px;padding:16px;}
+.pill{display:inline-block;background:var(--accent-light);color:var(--accent2);
+  border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:600;margin-bottom:6px;}
+footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;}
+.occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">Cargando...</div>
+<script>
+// ── SUPABASE ──
+const SB_URL = 'https://xiapoxfttymlkyvbpamt.supabase.co';
+const SB_KEY = 'sb_publishable_Tws26IuyFraKHQ2MRQOOTQ_rQXY1AdM';
+const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'application/json' };
+
+// localStorage como caché local (para que cargue rápido mientras espera a Supabase)
+function lsGet(key){ try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;} }
+function lsSet(key,val){ try{if(val===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(val));}catch(e){} }
+
+async function sGet(key){
+  const code=key.replace('ev:','');
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/events?code=eq.${code}&select=data`,{headers:SB_HDR});
+    const rows=await r.json();
+    if(rows&&rows.length){const d=rows[0].data;lsSet(key,d);return d;}
+  }catch(e){}
+  // Fallback: caché local
+  return lsGet(key);
+}
+
+async function sSet(key,val){
+  lsSet(key,val); // guarda localmente de inmediato
+  const code=key.replace('ev:','');
+  try{
+    if(val===null){
+      await fetch(`${SB_URL}/rest/v1/events?code=eq.${code}`,{method:'DELETE',headers:SB_HDR});
+    } else {
+      await fetch(`${SB_URL}/rest/v1/events`,{
+        method:'POST',
+        headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates'},
+        body:JSON.stringify({code,data:val})
+      });
+    }
+  }catch(e){console.warn('Supabase error:',e);}
+}
+
+// ── ESTADO GLOBAL ──
+const app = document.getElementById('app');
+let guestName = '';
+try{guestName = localStorage.getItem('gn')||'';}catch(e){}
+
+// ── UTILIDADES ──
+function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function uid(){return 'g'+Date.now()+Math.random().toString(36).slice(2,5);}
+function render(html){app.innerHTML=html;}
+function genCode(){return Math.random().toString(36).slice(2,7).toUpperCase();}
+
+// ── HASH (URL) ──
+function getHash(){
+  const h=location.hash.replace('#','');
+  const p={};
+  h.split('&').forEach(s=>{const[k,v]=s.split('=');if(k)p[k]=decodeURIComponent(v||'');});
+  return p;
+}
+function setHash(p){
+  location.hash=Object.entries(p).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+}
+
+// ── CLIC CENTRAL (evita onclick="" inline bloqueados por seguridad) ──
+window.addEventListener('error',e=>console.warn('err:',e.message));
+window.addEventListener('unhandledrejection',e=>{console.warn('rej:',e.reason);e.preventDefault&&e.preventDefault();});
+
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-a]');
+  if(!el)return;
+  const a=el.getAttribute('data-a');
+  const x=el.getAttribute('data-x');
+  const y=el.getAttribute('data-y');
+  try{ dispatch(a,x,y); }
+  catch(err){ console.warn('dispatch error',a,err); }
+});
+
+function dispatch(a,x,y){
+  const map={
+    'home':()=>renderHome(),
+    'goCreate':()=>renderCreate(),
+    'setOcc':()=>{
+      document.querySelectorAll('.occ-btn').forEach(b=>b.classList.remove('active'));
+      const btn=document.querySelector(`.occ-btn[data-x="${x}"]`);
+      if(btn)btn.classList.add('active');
+      const inp=document.getElementById('occType');
+      if(inp)inp.value=x;
+      const lbl=document.getElementById('ownerLabel');
+      const oData=OCCASIONS[x]||OCCASIONS['cumple'];
+      if(lbl)lbl.textContent='Nombre de '+oData.person;
+    },
+    'goJoin':()=>renderJoin(),
+    'goLastList':()=>{ const c=lsGet('lastOwnerCode'); if(c){setHash({o:c});renderOwner(c);} },
+    'clearLastList':()=>clearLastList(),
+    'sendAddrRequest':()=>sendAddrRequest(x,y),
+    'copyAddrReq':()=>copyAddrReqMsg(x,y),
+    'copyMsg':()=>copyText(x),
+    'notifyOwner':()=>openMailto(buildNotifyMailto(x,...y.split('|||'))),
+    'saveAddress':()=>saveAddress(x,y),
+    'copyAddr':()=>copyAddr(x,y),
+    'deleteList':()=>deleteList(x),
+    'createList':()=>createList(),
+    'joinList':()=>joinList(),
+    'addGift':()=>addGift(x),
+    'deleteGift':()=>deleteGift(x,y),
+    'freeGift':()=>freeGift(x,y),
+    'setName':()=>setName(),
+    'changeName':()=>changeName(),
+    'pickGift':()=>pickGift(x,y),
+    'cancelGift':()=>cancelGift(x,y),
+    'setType':()=>setType(x),
+    'detectLocation':()=>detectLocation(),
+    'closeModal':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); },
+    'confirmPick':()=>confirmPick(x,y),
+    'finalConfirm':()=>finalConfirm(x,y),
+    'closeAndRefresh':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); renderGuest(x); },
+    'copyLink':()=>copyText(x),
+    'copyCode':()=>copyText(x),
+    'shareNative':()=>shareNative(x,y),
+    'shareFacebook':()=>shareFacebook(x),
+    'shareX':()=>shareX(x,y),
+    'shareInstagram':()=>shareInstagram(x),
+    'shareOther':()=>shareOther(x,y),
+  };
+  if(map[a]) map[a](); else console.warn('acción desconocida:',a);
+}
+
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>alert('¡Copiado!')).catch(()=>alert(t));
+  } else { alert(t); }
+}
+
+// ── PANTALLAS ──
+
+// ── OCASIÓN ──
+const OCCASIONS={
+  'cumple':  {icon:'🎂', label:'Cumpleaños',   person:'el/la cumpleañero/a', verb:'cumple'},
+  'casamiento':{icon:'💍',label:'Casamiento',  person:'los novios',          verb:'casamiento'},
+  'baby':    {icon:'👶', label:'Baby shower',  person:'el/la bebé',          verb:'baby shower'},
+  'graduacion':{icon:'🎓',label:'Graduación', person:'el/la graduado/a',     verb:'graduación'},
+  'mudanza': {icon:'🏠', label:'Mudanza',      person:'los que se mudan',    verb:'mudanza'},
+  'otro':    {icon:'🎁', label:'Otro evento',  person:'el/la agasajado/a',   verb:'evento'},
+};
+function occ(data){ return OCCASIONS[data.occasion]||OCCASIONS['cumple']; }
+
+function renderHome(){
+  setHash({});
+  const lastCode = lsGet('lastOwnerCode');
+  const lastTitle = lsGet('lastOwnerTitle');
+  const lastInfo = lastCode ? `
+    <div class="card" style="background:#f0f7f0;border-color:#5c7a52">
+      <p style="margin:0 0 6px;font-size:.88rem;color:#5c7a52"><b>📋 Tu última lista:</b> ${esc(lastTitle||lastCode)}</p>
+      <p style="margin:0 0 8px;font-size:.8rem;color:var(--muted)">Código: <b>${esc(lastCode)}</b></p>
+      <div style="display:flex;gap:8px">
+        <button data-a="goLastList" style="background:#5c7a52;flex:1">Volver a mi lista</button>
+        <button class="ghost sm" data-a="clearLastList" style="color:#c0392b;border-color:#c0392b">Borrar</button>
+      </div>
+    </div>` : '';
+  render(`
+    <h1>🎁 Mis listas de regalos</h1>
+    <p class="sub">Organizá los regalos para que nadie compre lo mismo dos veces.</p>
+    ${lastInfo}
+    <div class="card">
+      <div class="home-btns">
+        <button data-a="goCreate">Crear una lista nueva</button>
+        <button class="ghost" data-a="goJoin">Tengo un código</button>
+      </div>
+    </div>
+    <footer></footer>
+  `);
+}
+
+function renderCreate(){
+  render(`
+    <h1>🎁 Nueva lista de regalos</h1>
+    <div class="card">
+      <label>Tipo de evento</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="occGrid">
+        ${Object.entries(OCCASIONS).map(([k,v])=>`
+          <button type="button" class="occ-btn ghost sm${k==='cumple'?' active':''}"
+            data-a="setOcc" data-x="${k}"
+            style="padding:10px 4px;text-align:center;border-radius:10px;font-size:.8rem">
+            ${v.icon}<br><span style="font-size:.72rem">${v.label}</span>
+          </button>`).join('')}
+      </div>
+      <input type="hidden" id="occType" value="cumple">
+      <label id="ownerLabel">¿Quién festeja?</label>
+      <input id="ownerName" placeholder="Ej: Martín">
+      <label>Título de la lista (opcional)</label>
+      <input id="listTitle" placeholder="Ej: Cumple de Martín">
+      <label>Tu email (para recibir avisos cuando confirmen un regalo)</label>
+      <input id="ownerEmail" type="email" placeholder="tucorreo@email.com">
+      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">Opcional. Solo para notificaciones — no se comparte.</p>
+      <button data-a="createList">Crear lista ✓</button>
+      <div style="margin-top:8px"><button class="ghost sm" data-a="home">Volver</button></div>
+    </div>
+  `);
+}
+
+async function createList(){
+  const owner=(document.getElementById('ownerName')||{}).value||'';
+  const title=(document.getElementById('listTitle')||{}).value||'';
+  if(!owner.trim()){alert('Escribí el nombre');return;}
+  const email=((document.getElementById('ownerEmail')||{}).value||'').trim();
+  const btn=document.querySelector('[data-a="createList"]');
+  if(btn){btn.disabled=true;btn.textContent='Creando...';}
+  const code=genCode();
+  const occType=(document.getElementById('occType')||{}).value||'cumple';
+  const occData=OCCASIONS[occType]||OCCASIONS['cumple'];
+  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email||null,gifts:[],created:Date.now()};
+  await sSet('ev:'+code, data);
+  lsSet('lastOwnerCode', code);
+  lsSet('lastOwnerTitle', data.title);
+  setHash({o:code});
+  renderOwner(code);
+}
+
+function renderJoin(){
+  render(`
+    <h1>🎁 Unirme a una lista</h1>
+    <div class="card">
+      <label>Código de la lista</label>
+      <input id="joinCode" placeholder="Ej: AB12C" style="text-transform:uppercase;letter-spacing:.1em">
+      <label><input type="checkbox" id="iAmOwner" style="width:auto;margin-right:6px">Soy el organizador de esta lista</label>
+      <button data-a="joinList" style="margin-top:4px">Entrar</button>
+      <div style="margin-top:8px"><button class="ghost sm" data-a="home">Volver</button></div>
+    </div>
+  `);
+}
+
+async function joinList(){
+  const raw=(document.getElementById('joinCode')||{}).value||'';
+  const code=raw.trim().toUpperCase();
+  const isOwner=document.getElementById('iAmOwner')&&document.getElementById('iAmOwner').checked;
+  if(!code){alert('Escribí el código');return;}
+  const btn=document.querySelector('[data-a="joinList"]');
+  if(btn){btn.disabled=true;btn.textContent='Buscando...';}
+  const data=await sGet('ev:'+code);
+  if(btn){btn.disabled=false;btn.textContent='Entrar';}
+  if(!data){
+    alert('No encontré esa lista. Revisá que el código esté bien escrito (5 letras, mayúsculas).');
+    return;
+  }
+  if(isOwner){ setHash({o:code}); renderOwner(code); }
+  else { setHash({g:code}); renderGuest(code); }
+}
+
+// ── VISTA ORGANIZADOR ──
+async function renderOwner(code){
+  const data=await sGet('ev:'+code);
+  if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
+  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+  const guestLink=BASE_URL+'#g='+code;
+  render(`
+    <h1>🎁 ${esc(data.title)}</h1>
+    <p class="sub">Sos el organizador. Podés agregar y borrar regalos cuando quieras.</p>
+    <div class="card">
+      <label>Código (para que lo copien tus amigos)</label>
+      <div class="codebox">${esc(code)}</div>
+      <button class="ghost sm" data-a="copyCode" data-x="${esc(code)}">Copiar código</button>
+      <div style="margin-top:10px">
+        <label>Link directo para invitados</label>
+        <div class="linkbox">${esc(guestLink)}</div>
+        <button class="ghost sm" style="margin-top:6px" data-a="copyLink" data-x="${esc(guestLink)}">Copiar link</button>
+      </div>
+    </div>
+    <div class="card" style="background:#f0f7f0;border-color:#5c7a52">
+      <h3 style="margin:0 0 6px;color:#2d5a1b">🚀 Compartir la lista</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin:0 0 10px">Mandásela a tus amigos para que elijan qué regalarte.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#25D366;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          💬 WhatsApp
+        </button>
+        <button data-a="shareFacebook" data-x="${esc(guestLink)}"
+          style="background:#1877F2;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          📘 Facebook
+        </button>
+        <button data-a="shareX" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#000;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          𝕏 Twitter/X
+        </button>
+        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
+          style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          📸 Instagram
+        </button>
+      </div>
+      <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+        style="width:100%;margin-top:8px;background:#fff;border:1px solid var(--line);color:#333;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
+        ⋯ Más opciones (menú del celular)
+      </button>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px">📦 Direcciones de envío <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">🔒 Solo las ves vos. Las compartís manualmente a quien te pida enviarte un regalo.</p>
+
+      <!-- DOMICILIO -->
+      <div style="border:1px solid var(--line);border-radius:6px;padding:10px;margin-bottom:8px">
+        <b style="font-size:.85rem">🏠 Domicilio particular</b>
+        ${data.addrHome&&data.addrHome.calle ? `
+          <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
+            ${data.addrHome.nombre?esc(data.addrHome.nombre)+'<br>':''}
+            ${esc(data.addrHome.calle)}<br>
+            ${data.addrHome.ciudad?esc(data.addrHome.ciudad)+(data.addrHome.cp?' — CP: '+esc(data.addrHome.cp):'')+'<br>':''}
+            ${data.addrHome.pais?esc(data.addrHome.pais)+'<br>':''}
+            ${data.addrHome.notas?'<i>'+esc(data.addrHome.notas)+'</i>':''}
+          </div>
+          <button class="ghost sm" data-a="copyAddr" data-x="home" data-y="${esc(code)}">Copiar dirección</button>` :
+          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 0">No cargada.</p>'}
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:.82rem;color:var(--red-dark)">${data.addrHome&&data.addrHome.calle?'Editar':'Cargar'}</summary>
+          <div style="margin-top:8px">
+            <label>Nombre del destinatario</label>
+            <input id="homeNombre" placeholder="Ej: Agustín García" value="${esc(data.addrHome&&data.addrHome.nombre||'')}">
+            <label>Calle, número, piso, depto</label>
+            <input id="homeCalle" placeholder="Ej: Av. Corrientes 1234, 3°B" value="${esc(data.addrHome&&data.addrHome.calle||'')}">
+            <div style="display:flex;gap:8px">
+              <div style="flex:2"><label>Ciudad</label><input id="homeCiudad" placeholder="Buenos Aires" value="${esc(data.addrHome&&data.addrHome.ciudad||'')}"></div>
+              <div style="flex:1"><label>CP</label><input id="homeCP" placeholder="C1043" value="${esc(data.addrHome&&data.addrHome.cp||'')}"></div>
+            </div>
+            <label>País</label>
+            <input id="homePais" placeholder="Argentina" value="${esc(data.addrHome&&data.addrHome.pais||'')}">
+            <label>Notas (timbre, horario, etc.)</label>
+            <input id="homeNotas" placeholder="Tocar timbre, entre 9-18hs" value="${esc(data.addrHome&&data.addrHome.notas||'')}">
+            <button data-a="saveAddress" data-x="home" data-y="${esc(code)}" style="margin-top:4px">Guardar domicilio</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- CORREO POSTAL -->
+      <div style="border:1px solid var(--line);border-radius:6px;padding:10px">
+        <b style="font-size:.85rem">📮 Correo postal más cercano</b>
+        ${data.addrPost&&data.addrPost.calle ? `
+          <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
+            ${data.addrPost.nombre?esc(data.addrPost.nombre)+'<br>':''}
+            ${esc(data.addrPost.calle)}<br>
+            ${data.addrPost.ciudad?esc(data.addrPost.ciudad)+(data.addrPost.cp?' — CP: '+esc(data.addrPost.cp):'')+'<br>':''}
+            ${data.addrPost.pais?esc(data.addrPost.pais)+'<br>':''}
+            ${data.addrPost.notas?'<i>'+esc(data.addrPost.notas)+'</i>':''}
+          </div>
+          <button class="ghost sm" data-a="copyAddr" data-x="post" data-y="${esc(code)}">Copiar dirección</button>` :
+          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 0">No cargada.</p>'}
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:.82rem;color:var(--red-dark)">${data.addrPost&&data.addrPost.calle?'Editar':'Cargar'}</summary>
+          <div style="margin-top:8px">
+            <label>Nombre / sucursal del correo</label>
+            <input id="postNombre" placeholder="Ej: OCA Sucursal Palermo (a nombre de Agustín García)" value="${esc(data.addrPost&&data.addrPost.nombre||'')}">
+            <label>Dirección del correo</label>
+            <input id="postCalle" placeholder="Ej: Thames 1234" value="${esc(data.addrPost&&data.addrPost.calle||'')}">
+            <div style="display:flex;gap:8px">
+              <div style="flex:2"><label>Ciudad</label><input id="postCiudad" placeholder="Buenos Aires" value="${esc(data.addrPost&&data.addrPost.ciudad||'')}"></div>
+              <div style="flex:1"><label>CP</label><input id="postCP" placeholder="C1414" value="${esc(data.addrPost&&data.addrPost.cp||'')}"></div>
+            </div>
+            <label>País</label>
+            <input id="postPais" placeholder="Argentina" value="${esc(data.addrPost&&data.addrPost.pais||'')}">
+            <label>Notas (horario, referencia, etc.)</label>
+            <input id="postNotas" placeholder="Lun-Vie 9-18hs, pedir por García" value="${esc(data.addrPost&&data.addrPost.notas||'')}">
+            <button data-a="saveAddress" data-x="post" data-y="${esc(code)}" style="margin-top:4px">Guardar correo postal</button>
+          </div>
+        </details>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Agregar regalo</h3>
+      <input id="newName" placeholder="Nombre del regalo o libro">
+      <label>Link donde comprarlo (opcional — podés poner Amazon, Mercado Libre, etc.)</label>
+      <input id="newLink" placeholder="https://...">
+      <div style="display:flex;gap:16px;margin-bottom:10px;">
+        <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">Físico</label>
+        <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">Digital</label>
+      </div>
+      <button data-a="addGift" data-x="${esc(code)}">Agregar a la lista</button>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Regalos en la lista (${data.gifts.length})</h3>
+      ${ownerGiftList(data,code)}
+    </div>
+    <footer>Vista organizador · <span data-a="home" style="color:var(--red);cursor:pointer;text-decoration:underline">salir</span> · <span data-a="deleteList" data-x="${esc(code)}" style="color:#c0392b;cursor:pointer;text-decoration:underline">borrar lista</span></footer>
+  `);
+  // Auto-refresh cada 5s
+  clearTimeout(window._ownerTimer);
+  window._ownerTimer=setTimeout(async()=>{
+    if(getHash().o===code){ const d=await sGet('ev:'+code); if(d){ const el=document.querySelector('.card:last-of-type'); if(el)el.innerHTML='<h3 style="margin:0 0 10px">Regalos en la lista ('+d.gifts.length+')</h3>'+ownerGiftList(d,code); } }
+  },5000);
+}
+
+function ownerGiftList(data,code){
+  if(!data.gifts.length) return '<div class="empty">Aún no hay regalos. Agregá el primero arriba ☝️</div>';
+  return data.gifts.map(g=>`
+    <div class="gift${g.claimedBy?' taken':''}">
+      <div style="flex:1">
+        <div class="gift-name">${esc(g.name)}</div>
+        <div style="margin-top:2px">
+          ${g.allowPhys?'<span class="badge">Físico</span>':''}${g.allowDig?'<span class="badge">Digital</span>':''}
+        </div>
+        ${g.claimedBy
+          ? `<div class="claimed">${g.claimedConfirmed?'🔒 Confirmado para regalarte':'⏳ Reservado para regalarte'}</div>`
+          : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+        ${g.claimedBy?`<button class="ghost sm" data-a="freeGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Liberar</button>`:''}
+        <button class="ghost sm" style="color:#c0392b;border-color:#c0392b" data-a="deleteGift" data-x="${esc(code)}" data-y="${esc(g.id)}">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addGift(code){
+  const nameEl=document.getElementById('newName');
+  const linkEl=document.getElementById('newLink');
+  const name=(nameEl||{}).value||'';
+  const manualLink=((linkEl||{}).value||'').trim();
+  if(!name.trim()){alert('Escribí el nombre del regalo');return;}
+  const allowPhys=document.getElementById('allowPhys')&&document.getElementById('allowPhys').checked;
+  const allowDig=document.getElementById('allowDig')&&document.getElementById('allowDig').checked;
+  const data=await sGet('ev:'+code);
+  if(!data){alert('No se encontró la lista');return;}
+  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,manualLink:manualLink||null,claimedBy:null});
+  await sSet('ev:'+code,data);
+  renderOwner(code);
+}
+
+async function deleteGift(code,gid){
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  data.gifts=data.gifts.filter(g=>g.id!==gid);
+  await sSet('ev:'+code,data);
+  renderOwner(code);
+}
+
+async function freeGift(code,gid){
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  const g=data.gifts.find(x=>x.id===gid);
+  if(g){g.claimedBy=null;g.claimedType=null;g.claimedCity=null;g.claimedConfirmed=false;}
+  await sSet('ev:'+code,data);
+  renderOwner(code);
+}
+
+// ── VISTA INVITADO ──
+async function renderGuest(code){
+  if(!guestName){
+    const data=await sGet('ev:'+code);
+    if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
+    render(`
+      <h1>🎁 ${esc(data.title)}</h1>
+      <p class="sub">¡Bienvenido! Primero necesito saber tu nombre.</p>
+      <div class="card">
+        <label>Tu nombre (para confirmar quién da el regalo — no se muestra públicamente)</label>
+        <input id="nameInput" placeholder="Tu nombre">
+        <button data-a="setName" data-x="${esc(code)}">Continuar</button>
+      </div>
+    `);
+    return;
+  }
+  const data=await sGet('ev:'+code);
+  if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
+  const occInfo=occ(data);
+  render(`
+    <div class="occasion-icon">${occInfo.icon}</div>
+    <h1>${esc(data.title)}</h1>
+    <p class="sub">Elegí un regalo para ${esc(data.owner)}. Los que ya fueron elegidos no están disponibles.</p>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px">
+      <span style="font-size:.88rem">Viendo como <b>${esc(guestName)}</b></span>
+      <button class="ghost sm" data-a="changeName" data-x="${esc(code)}">Cambiar</button>
+    </div>
+    <div class="card">
+      ${guestGiftList(data,code)}
+    </div>
+    <footer>Código: ${esc(code)}</footer>
+  `);
+  clearTimeout(window._guestTimer);
+  window._guestTimer=setTimeout(async()=>{
+    if(getHash().g===code){ const d=await sGet('ev:'+code); if(d){ const el=document.querySelector('.card:last-of-type'); if(el)el.innerHTML=guestGiftList(d,code); } }
+  },5000);
+}
+
+function guestGiftList(data,code){
+  if(!data.gifts.length) return '<div class="empty">El organizador todavía no agregó regalos.</div>';
+  return data.gifts.map(g=>{
+    const isMe = g.claimedBy===guestName;
+    const taken = !!g.claimedBy;
+    const confirmed = g.claimedConfirmed;
+    let statusLabel='';
+    if(taken && confirmed && isMe)
+      statusLabel=`<div class="claimed">🔒 Ya confirmaste este regalo — es tuyo</div>`;
+    else if(taken && confirmed)
+      statusLabel=`<div class="claimed">🔒 Ya fue seleccionado para regalo</div>`;
+    else if(taken && isMe)
+      statusLabel=`<div class="claimed" style="color:#b07d00">⏳ Lo tenés vos — falta confirmar definitivamente</div>`;
+    else if(taken)
+      statusLabel=`<div class="claimed" style="color:#b07d00">⏳ Ya fue reservado para regalo</div>`;
+    let actionBtn='';
+    if(!taken) actionBtn=`<button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir</button>`;
+    else if(isMe && !confirmed) actionBtn=`<button class="ghost sm" data-a="cancelGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Cancelar</button>`;
+    return `
+      <div class="gift${taken?' taken':''}">
+        <div style="flex:1">
+          <div class="gift-name">${esc(g.name)}</div>
+          <div style="margin-top:2px">
+            ${g.allowPhys?'<span class="badge">Físico</span>':''}${g.allowDig?'<span class="badge">Digital</span>':''}
+          </div>
+          ${statusLabel}
+        </div>
+        <div style="flex-shrink:0">${actionBtn}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setName(){
+  const n=(document.getElementById('nameInput')||{}).value||'';
+  if(!n.trim()){alert('Escribí tu nombre');return;}
+  guestName=n.trim();
+  try{localStorage.setItem('gn',guestName);}catch(e){}
+  renderGuest(getHash().g||'');
+}
+
+function changeName(){
+  guestName='';
+  try{localStorage.removeItem('gn');}catch(e){}
+  renderGuest(getHash().g||'');
+}
+
+async function cancelGift(code,gid){
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  const g=data.gifts.find(x=>x.id===gid);
+  if(g&&g.claimedBy===guestName){g.claimedBy=null;g.claimedType=null;g.claimedCity=null;}
+  await sSet('ev:'+code,data);
+  renderGuest(code);
+}
+
+async function pickGift(code,gid){
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  const g=data.gifts.find(x=>x.id===gid);
+  if(!g||g.claimedBy){renderGuest(code);return;}
+  window._pickType=g.allowPhys?'físico':'digital';
+  const onlyPhys=g.allowPhys&&!g.allowDig;
+  const onlyDig=g.allowDig&&!g.allowPhys;
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`
+    <div class="modal">
+      <h3>${esc(g.name)}</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px">Reservando para vos. Nadie más va a poder elegir este regalo.</p>
+      ${(g.allowPhys&&g.allowDig)?`
+        <label>¿Lo comprás físico o digital?</label>
+        <div class="toggle-row">
+          <button id="btnPhys" class="active" data-a="setType" data-x="físico">📦 Físico</button>
+          <button id="btnDig" data-a="setType" data-x="digital">📱 Digital</button>
+        </div>`:`<p style="font-size:.85rem;margin:0 0 10px"><b>Tipo:</b> ${onlyDig?'📱 Digital':'📦 Físico'}</p>`}
+      <label>Tu ciudad / zona para buscar tiendas cerca tuyo</label>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <input id="pickCity" placeholder="Ej: Buenos Aires, Palermo" style="margin:0;flex:1">
+        <button class="ghost sm" id="geoBtn" data-a="detectLocation" style="white-space:nowrap;padding:8px 10px">📍 Detectar</button>
+      </div>
+      <div id="pickLinks"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="ghost" data-a="closeModal">Cancelar</button>
+        <button id="confirmPickBtn" data-a="confirmPick" data-x="${esc(code)}" data-y="${esc(gid)}">Reservar y ver dónde comprar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  // Mostrar link manual del organizador si existe
+  if(g.manualLink){
+    const area=document.getElementById('pickLinks');
+    if(area) area.innerHTML=`
+      <div style="background:#e8f4e8;border:1px solid #5c7a52;border-radius:4px;padding:8px 10px;font-size:.83rem;margin-bottom:6px">
+        🔗 <b>Link del organizador:</b><br>
+        <a href="${esc(g.manualLink)}" target="_blank" rel="noopener" style="color:var(--green);word-break:break-all">${esc(g.manualLink)} ↗</a>
+      </div>
+    `;
+  }
+}
+
+function detectLocation(){
+  const btn=document.getElementById('geoBtn');
+  const cityInput=document.getElementById('pickCity');
+  if(!navigator.geolocation){
+    alert('Tu navegador no soporta detección de ubicación. Escribí tu ciudad a mano.');
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='Detectando...';}
+  navigator.geolocation.getCurrentPosition(
+    async(pos)=>{
+      const lat=pos.coords.latitude;
+      const lon=pos.coords.longitude;
+      // Convertimos coordenadas a nombre de ciudad con la API gratuita de Open-Meteo / Nominatim
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es`);
+        const d=await r.json();
+        const city=d.address&&(d.address.city||d.address.town||d.address.village||d.address.county)||'';
+        if(cityInput&&city) cityInput.value=city;
+      }catch(e){
+        // Si falla la geocodificación, dejamos las coordenadas como texto
+        if(cityInput) cityInput.value=`${lat.toFixed(4)},${lon.toFixed(4)}`;
+      }
+      // Guardamos las coords para usar en los links de Maps
+      window._geoLat=lat; window._geoLon=lon;
+      if(btn){btn.disabled=false;btn.textContent='📍 Detectado';}
+    },
+    (err)=>{
+      if(btn){btn.disabled=false;btn.textContent='📍 Detectar';}
+      if(err.code===1) alert('No diste permiso de ubicación. Escribí tu ciudad a mano.');
+      else alert('No se pudo detectar la ubicación. Escribí tu ciudad a mano.');
+    },
+    {timeout:10000}
+  );
+}
+
+function setType(t){
+  window._pickType=t;
+  const bp=document.getElementById('btnPhys');
+  const bd=document.getElementById('btnDig');
+  if(bp) bp.classList.toggle('active',t==='físico');
+  if(bd) bd.classList.toggle('active',t==='digital');
+}
+
+function buildLinks(name,city,type,manualLink){
+  const q=encodeURIComponent(name);
+  const hasGeo=window._geoLat&&window._geoLon;
+  const links=[];
+  // Link manual del organizador (siempre primero si existe)
+  if(manualLink){
+    links.push({label:'🔗 Link del organizador (recomendado)',url:manualLink,highlight:true});
+  }
+  if(type==='digital'){
+    links.push({label:'📱 Amazon Kindle',url:'https://www.amazon.com/s?k='+q+'+kindle+ebook'});
+    links.push({label:'📱 Google Play Libros',url:'https://play.google.com/store/search?q='+q+'&c=books'});
+    links.push({label:'🔍 Buscar ebook en Google',url:'https://www.google.com/search?q='+encodeURIComponent('comprar ebook '+name)});
+  } else {
+    // Con GPS es mucho más preciso
+    if(hasGeo){
+      links.push({label:'📍 Librerías más cercanas (Google Maps)',url:`https://www.google.com/maps/search/librería/@${window._geoLat},${window._geoLon},14z`});
+      links.push({label:'📍 Buscar "'+name+'" cerca tuyo',url:`https://www.google.com/maps/search/${q}+librería/@${window._geoLat},${window._geoLon},13z`});
+    } else if(city){
+      links.push({label:'🗺️ Librerías en '+city+' (Google Maps)',url:'https://www.google.com/maps/search/'+encodeURIComponent('librería '+city)});
+    }
+    links.push({label:'🛒 MercadoLibre',url:'https://listado.mercadolibre.com.ar/'+q.replace(/%20/g,'-')});
+    links.push({label:'🛒 Amazon',url:'https://www.amazon.com/s?k='+q});
+    links.push({label:'🔍 Buscar en Google',url:'https://www.google.com/search?q='+encodeURIComponent('comprar '+name+(city?' '+city:''))});
+  }
+  return links;
+}
+
+async function confirmPick(code,gid){
+  // PASO 1: reservar (provisional, aún se puede cancelar)
+  let saved=false;
+  try{
+    const city=(document.getElementById('pickCity')||{}).value||'';
+    const type=window._pickType||'físico';
+    const data=await sGet('ev:'+code);
+    const g=data&&data.gifts.find(x=>x.id===gid);
+    if(!g||g.claimedBy){
+      document.querySelector('.modal-bg')?.remove();
+      alert('Otro ya lo reservó en este momento. Elegí otro.');
+      renderGuest(code);
+      return;
+    }
+    g.claimedBy=guestName; g.claimedType=type; g.claimedCity=city; g.claimedConfirmed=false;
+    await sSet('ev:'+code,data);
+    saved=true;
+    window._geoLat=null; window._geoLon=null;
+    const links=buildLinks(g.name,city,type,g.manualLink||null);
+    const area=document.getElementById('pickLinks');
+    if(area) area.innerHTML=`
+      <p style="font-size:.83rem;color:var(--green);margin:10px 0 4px">✓ Reservado provisoriamente. Dónde buscarlo:</p>
+      <div class="buy-links">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid #5c7a52;':''}">${l.label} ↗</a>`).join('')}</div>
+      <div style="background:#fff3cd;border:1px solid #e0a800;border-radius:6px;padding:12px;margin-top:12px">
+        <p style="margin:0 0 8px;font-size:.88rem;font-weight:600">¿Confirmás definitivamente este regalo?</p>
+        <p style="margin:0 0 10px;font-size:.8rem;color:var(--muted)">Una vez que confirmás, ya no podés cancelarlo. Quedará como tu regalo para ${esc(data.owner)}.</p>
+        <button id="finalConfirmBtn" data-a="finalConfirm" data-x="${esc(code)}" data-y="${esc(gid)}" style="background:#5c7a52;width:100%;padding:12px;font-size:.95rem">
+          ✅ Sí, confirmo que voy a regalar esto
+        </button>
+      </div>
+    `;
+    const cb=document.getElementById('confirmPickBtn');
+    if(cb){cb.textContent='Cerrar (sin confirmar)';cb.setAttribute('data-a','closeAndRefresh');cb.setAttribute('data-x',code);}
+    const cancelBtn=document.querySelector('.modal .row button.ghost');
+    if(cancelBtn) cancelBtn.remove();
+  }catch(e){
+    if(saved){document.querySelector('.modal-bg')?.remove();renderGuest(code);}
+    else{alert('Algo falló al reservar. Probá de nuevo.');}
+  }
+}
+
+async function finalConfirm(code,gid){
+  try{
+    const data=await sGet('ev:'+code);
+    const g=data&&data.gifts.find(x=>x.id===gid);
+    if(!g||!g.claimedBy){document.querySelector('.modal-bg')?.remove();renderGuest(code);return;}
+    g.claimedConfirmed=true;
+    await sSet('ev:'+code,data);
+    const area=document.getElementById('pickLinks');
+    const ownerEmail=data.ownerEmail||null;
+    const hasAddresses=(data.addrHome&&data.addrHome.calle)||(data.addrPost&&data.addrPost.calle);
+    const notifyMsgText=`Hola ${data.owner}!\n\nAlguien confirmó que te va a regalar: "${g.name}". ¡No lo compres!\n\nSaludos 🎉`;
+    const notifySection=ownerEmail?`
+      <div style="margin-top:10px;border:1px solid #5c7a52;border-radius:6px;padding:12px">
+        <p style="margin:0 0 4px;font-size:.88rem;font-weight:600;color:#2d5a1b">📩 Avisarle a ${esc(data.owner)}</p>
+        <p style="margin:0 0 8px;font-size:.78rem;color:var(--muted)">Estos botones abren tu app de correo con el mensaje ya escrito. Vos solo tocás <b>Enviar</b> ahí. Si no tenés correo configurado, usá "Copiar mensaje" y pegalo en WhatsApp.</p>
+        <button data-a="notifyOwner" data-x="${esc(ownerEmail)}" data-y="${esc(g.name+'|||'+data.owner)}"
+           style="display:block;width:100%;background:#5c7a52;color:#fff;text-align:center;padding:10px;border-radius:4px;font-size:.88rem;border:none;cursor:pointer;margin-bottom:6px">
+          📧 Abrir correo con el aviso
+        </button>
+        <button data-a="copyMsg" data-x="${esc(notifyMsgText)}"
+           style="display:block;width:100%;background:#fff;color:#5c7a52;text-align:center;padding:8px;border-radius:4px;font-size:.82rem;border:1px solid #5c7a52;cursor:pointer">
+          📋 Copiar mensaje (para WhatsApp u otro)
+        </button>
+      </div>` : '';
+    // Sección de pedido de dirección anónima (sin revelar quién pide)
+    const requestSection=hasAddresses&&ownerEmail?`
+      <div style="margin-top:10px;border:1px solid var(--line);border-radius:6px;padding:12px">
+        <p style="margin:0 0 4px;font-size:.88rem;font-weight:600">📦 ¿Querés enviarlo físicamente?</p>
+        <p style="margin:0 0 8px;font-size:.8rem;color:var(--muted)">Se le pide la dirección a ${esc(data.owner)} de forma anónima — no va a saber quién pregunta.</p>
+        <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}"
+           style="width:100%;margin-bottom:6px">📬 Pedir dirección de envío</button>
+        <button data-a="copyAddrReq" data-x="${esc(code)}" data-y="${esc(g.id)}"
+           style="display:block;width:100%;background:#fff;color:var(--red-dark);text-align:center;padding:8px;border-radius:4px;font-size:.82rem;border:1px solid var(--line);cursor:pointer">
+          📋 Copiar pedido para WhatsApp
+        </button>
+      </div>` :
+      hasAddresses?`
+      <div style="margin-top:10px;background:#f9f4e8;border:1px solid var(--line);border-radius:6px;padding:10px;font-size:.82rem;color:var(--muted)">
+        📦 Si querés enviar el regalo físicamente, contactá directamente al organizador para pedirle la dirección.
+      </div>` : '';
+    if(area){
+      area.innerHTML=`
+        <div style="background:#d4edda;border:1px solid #5c7a52;border-radius:6px;padding:12px;margin-top:8px">
+          <p style="margin:0;font-size:.9rem;font-weight:600;color:#2d5a1b">🎁 ¡Confirmado! Ya es tu regalo.</p>
+          <p style="margin:4px 0 0;font-size:.8rem;color:#2d5a1b">El regalo queda reservado para vos. ¡Sorpresa guardada!</p>
+        </div>
+        ${notifySection}
+        ${requestSection}
+      `;
+    }
+    const finalBtn=document.getElementById('finalConfirmBtn');
+    if(finalBtn) finalBtn.remove();
+    const cb=document.getElementById('confirmPickBtn');
+    if(cb){cb.textContent='Cerrar';cb.setAttribute('data-a','closeAndRefresh');cb.setAttribute('data-x',code);}
+  }catch(e){
+    alert('Algo falló al confirmar. Probá de nuevo.');
+  }
+}
+
+function buildNotifyMailto(email,giftName,ownerName){
+  const subject=encodeURIComponent('Un regalo confirmado para vos 🎁');
+  const body=encodeURIComponent(
+    `Hola ${ownerName}!\n\n`+
+    `Alguien confirmó que te va a regalar: "${giftName}". ¡No lo compres!\n\n`+
+    `Saludos 🎉`
+  );
+  return `mailto:${email}?subject=${subject}&body=${body}`;
+}
+
+async function copyAddrReqMsg(code,gid){
+  const data=await sGet('ev:'+code);
+  const g=data&&data.gifts.find(x=>x.id===gid);
+  if(!data||!g)return;
+  const msg=`Hola ${data.owner}!\n\nAlguien que te va a hacer un regalo quiere enviártelo físicamente. ¿Podés responder con tu dirección de envío?\n\n¡Gracias! 🎁`;
+  copyText(msg);
+}
+
+function openMailto(link){
+  const a=document.createElement('a');
+  a.href=link;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(),500);
+}
+
+async function sendAddrRequest(code,gid){
+  const data=await sGet('ev:'+code);
+  const g=data&&data.gifts.find(x=>x.id===gid);
+  if(!data||!g||!data.ownerEmail){alert('El organizador no dejó su email. Pedile la dirección por otro medio.');return;}
+  const subject=encodeURIComponent(`Alguien quiere enviarte un regalo 🎁`);
+  const body=encodeURIComponent(
+    `Hola ${data.owner}!\n\n`+
+    `Alguien que te va a hacer un regalo quiere enviártelo físicamente.\n`+
+    `¿Podés responder este mail con tu dirección de envío?\n\n`+
+    `¡Gracias! 🎁`
+  );
+  const link=`mailto:${data.ownerEmail}?subject=${subject}&body=${body}`;
+  openMailto(link);
+  // Mostrar confirmación visual en lugar del botón
+  const btn=document.querySelector('[data-a="sendAddrRequest"]');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='✅ Mail abierto — solo tocá Enviar en tu correo';
+    btn.style.background='#5c7a52';
+    btn.style.color='#fff';
+  }
+}
+
+async function saveAddress(type,code){
+  const prefix=type==='home'?'home':'post';
+  const v=id=>(document.getElementById(prefix+id)||{}).value||'';
+  const addr={nombre:v('Nombre').trim(),calle:v('Calle').trim(),ciudad:v('Ciudad').trim(),cp:v('CP').trim(),pais:v('Pais').trim(),notas:v('Notas').trim()};
+  const data=await sGet('ev:'+code);
+  if(!data)return;
+  if(type==='home') data.addrHome=addr;
+  else data.addrPost=addr;
+  await sSet('ev:'+code,data);
+  renderOwner(code);
+}
+
+function addrText(addr){
+  if(!addr)return '';
+  return [addr.nombre,addr.calle,addr.ciudad?(addr.ciudad+(addr.cp?' — CP: '+addr.cp:'')):addr.cp,addr.pais,addr.notas].filter(Boolean).join('\n');
+}
+
+function copyAddr(type,code){
+  sGet('ev:'+code).then(data=>{
+    if(!data)return;
+    const addr=type==='home'?data.addrHome:data.addrPost;
+    const txt=addrText(addr);
+    if(!txt){alert('No hay dirección guardada todavía.');return;}
+    navigator.clipboard.writeText(txt).then(()=>alert('¡Dirección copiada! Pegala en tu respuesta.')).catch(()=>prompt('Copiá esta dirección:',txt));
+  });
+}
+
+// ── COMPARTIR ──
+function getShareUrl(guestLink){
+  // Si está en file://, el link no sirve para compartir — avisar
+  if(guestLink.startsWith('file://')){
+    return null;
+  }
+  return guestLink;
+}
+
+function shareNative(guestLink,title){
+  const url=getShareUrl(guestLink);
+  if(!url){
+    alert('Para compartir el link necesitás publicar la app en internet (netlify.com/drop). Por ahora podés copiar el código de la lista y mandárselo.');
+    return;
+  }
+  const txt=`🎁 ¡Ayudame eligiendo un regalo! Entrá a la lista: `;
+  if(navigator.share){
+    navigator.share({title,text:txt,url}).catch(()=>{});
+  } else {
+    copyText(url);
+    alert('Link copiado. Pegalo en WhatsApp, Instagram o donde quieras.');
+  }
+}
+
+function shareFacebook(guestLink){
+  const url=getShareUrl(guestLink);
+  if(!url){alert('Publicá la app en Netlify primero para poder compartir en redes.');return;}
+  window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url),'_blank');
+}
+
+function shareX(guestLink,title){
+  const url=getShareUrl(guestLink);
+  if(!url){alert('Publicá la app en Netlify primero para poder compartir en redes.');return;}
+  const txt=encodeURIComponent('🎁 ¡Ayudame a elegir mi regalo! '+url);
+  window.open('https://twitter.com/intent/tweet?text='+txt,'_blank');
+}
+
+function shareInstagram(guestLink){
+  const url=getShareUrl(guestLink);
+  if(!url){alert('Publicá la app en Netlify primero para poder compartir en redes.');return;}
+  // Instagram no tiene API de compartir directa — se copia el link
+  copyText(url);
+  alert('📋 Link copiado. Abrí Instagram, pegalo en tu bio o en una historia como link.');
+}
+
+function shareOther(guestLink,title){
+  const url=getShareUrl(guestLink);
+  if(!url){alert('Publicá la app en Netlify primero para poder compartir.');return;}
+  if(navigator.share){
+    navigator.share({title,url}).catch(()=>{});
+  } else {
+    copyText(url);
+    alert('Link copiado al portapapeles.');
+  }
+}
+
+function clearLastList(){
+  try{localStorage.removeItem('lastOwnerCode');localStorage.removeItem('lastOwnerTitle');}catch(e){}
+  renderHome();
+}
+
+async function deleteList(code){
+  if(!confirm('¿Seguro que querés borrar toda la lista? Esta acción no se puede deshacer.')) return;
+  // Borrar del storage
+  try{ await sSet('ev:'+code, null); }catch(e){}
+  // Borrar del localStorage si era la lista guardada
+  if(lsGet('lastOwnerCode')===code){
+    try{localStorage.removeItem('lastOwnerCode');localStorage.removeItem('lastOwnerTitle');}catch(e){}
+  }
+  renderHome();
+}
+
+// ── INICIO ──
+(async function init(){
+  const h=getHash();
+  if(h.o) renderOwner(h.o);
+  else if(h.g) renderGuest(h.g);
+  else renderHome();
+})();
+window.addEventListener('hashchange',function(){
+  clearTimeout(window._ownerTimer);clearTimeout(window._guestTimer);
+  const h=getHash();
+  if(h.o) renderOwner(h.o);
+  else if(h.g) renderGuest(h.g);
+  else renderHome();
+});
+</script>
+</body>
+</html>
