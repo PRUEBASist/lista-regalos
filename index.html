@@ -615,9 +615,10 @@ async function renderOwner(code){
       <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
       <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional — para que puedan regalar el dinero)</span></label>
       <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off">
-      <div style="display:flex;gap:16px;margin-bottom:10px;">
-        <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">Físico</label>
-        <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">Digital</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
+        <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
+        <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
+        <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Permitir donación de dinero</label>
       </div>
       <button data-a="addGift" data-x="${esc(code)}">Agregar a la lista</button>
     </div>
@@ -708,7 +709,8 @@ async function addGift(code){
   if(!data){alert('No se encontró la lista');return;}
   const priceEl=document.getElementById('newPrice');
   const price=((priceEl||{}).value||'').trim();
-  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,manualLink:manualLink||null,price:price||null,claimedBy:null});
+  const allowMoney=!!(document.getElementById('allowMoney')&&document.getElementById('allowMoney').checked);
+  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,allowMoney,manualLink:manualLink||null,price:price||null,claimedBy:null});
   await sSet('ev:'+code,data);
   renderOwner(code);
 }
@@ -809,10 +811,6 @@ function guestGiftList(data,code){
       <div class="gift${taken?' taken':''}">
         <div style="flex:1">
           <div class="gift-name">${esc(g.name)}</div>
-          <div style="margin-top:2px">
-            ${g.allowPhys?'<span class="badge">Físico</span>':''}${g.allowDig?'<span class="badge">Digital</span>':''}
-            ${g.price?`<span class="badge" style="background:#fff3cd;color:#7a5c00">💰 ${esc(g.price)}</span>`:''}
-          </div>
           ${statusLabel}
         </div>
         <div style="flex-shrink:0">${actionBtn}</div>
@@ -841,6 +839,7 @@ async function reopenConfirm(code,gid){
   const g=data&&data.gifts.find(x=>x.id===gid);
   if(!g||!g.claimedBy) return;
   const links=buildLinks(g.name,g.claimedCity||'',g.claimedType||'físico',g.manualLink||null);
+  const aliasSection=buildAliasSection(data,g);
   const modal=document.createElement('div');
   modal.className='modal-bg';
   modal.innerHTML=`<div class="modal">
@@ -888,6 +887,7 @@ async function pickGift(code,gid){
   const onlyDig=g.allowDig&&!g.allowPhys;
   const modal=document.createElement('div');
   modal.className='modal-bg';
+  const aliasSection=buildAliasSection(data,g);
   modal.innerHTML=`
     <div class="modal">
       <h3>${esc(g.name)}</h3>
@@ -1047,26 +1047,7 @@ async function confirmPick(code,gid){
     saved=true;
     window._geoLat=null; window._geoLon=null;
     const links=buildLinks(g.name,city,type,g.manualLink||null);
-    const aliasSection=data.alias&&g.price?`
-      <div style="margin-top:10px;background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:12px;text-align:center">
-        <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1b4332">💸 Opción: Regalar el dinero</p>
-        <p style="margin:0 0 8px;font-size:.78rem;color:#2d6a4f">Precio estimado del regalo: <b>${esc(g.price)}</b></p>
-        <div style="background:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px;font-size:1rem;font-weight:700;letter-spacing:1px;margin-bottom:8px">
-          💳 ${esc(data.alias)}
-        </div>
-        <button data-a="copyText" data-x="${esc(data.alias)}"
-          style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.85rem;cursor:pointer">
-          📋 Copiar alias para transferir
-        </button>
-      </div>`:
-      data.alias&&!g.price?`
-      <div style="margin-top:10px;background:#f0f7f0;border:1px solid var(--accent);border-radius:10px;padding:10px;text-align:center">
-        <p style="margin:0 4px;font-size:.82rem;color:#1b4332">💸 También podés regalar dinero · Alias: <b>${esc(data.alias)}</b></p>
-        <button data-a="copyText" data-x="${esc(data.alias)}"
-          style="margin-top:6px;background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:.82rem;cursor:pointer">
-          📋 Copiar alias
-        </button>
-      </div>`:''
+    const aliasSection=buildAliasSection(data,g);
     const area=document.getElementById('pickLinks');
     if(area) area.innerHTML=`
       <p style="font-size:.83rem;color:var(--green);margin:10px 0 4px">✓ Reservado provisoriamente. Dónde buscarlo:</p>
@@ -1224,6 +1205,22 @@ async function sendAddrRequest(code,combined){
         </p>
       </div>`;
   }
+}
+
+function buildAliasSection(data, g){
+  if(!data.alias || !g.allowMoney) return '';
+  return `
+    <div style="margin-top:10px;background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:12px;text-align:center">
+      <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1b4332">💸 Opción: Regalar el dinero</p>
+      ${g.price?`<p style="margin:0 0 8px;font-size:.78rem;color:#2d6a4f">Precio estimado: <b>${esc(g.price)}</b></p>`:''}
+      <div style="background:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px;font-size:1rem;font-weight:700;letter-spacing:1px;margin-bottom:8px">
+        💳 ${esc(data.alias)}
+      </div>
+      <button data-a="copyText" data-x="${esc(data.alias)}"
+        style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.85rem;cursor:pointer">
+        📋 Copiar alias para transferir
+      </button>
+    </div>`;
 }
 
 async function saveAlias(code){
