@@ -76,6 +76,7 @@ label{font-size:.78rem;font-weight:600;color:var(--ink2);display:block;margin-bo
 .pill{display:inline-block;background:var(--accent-light);color:var(--accent2);
   border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:600;margin-bottom:6px;}
 footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line-height:1.8;}
+.privacy-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:.7rem;}
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
 </head>
@@ -202,6 +203,7 @@ document.addEventListener('click',function(e){
 function dispatch(a,x,y){
   const map={
     'home':()=>renderHome(),
+    'showPrivacy':()=>showPrivacy(),
     'goCreate':()=>renderCreate(),
     'setOcc':()=>{
       document.querySelectorAll('.occ-btn').forEach(b=>b.classList.remove('active'));
@@ -245,7 +247,8 @@ function dispatch(a,x,y){
     'closeAndRefresh':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); renderGuest(x); },
     'copyLink':()=>copyText(x),
     'copyText':()=>copyText(x),
-    'goToOwner':()=>{ _showingCreated=false; setHash({o:x}); renderOwner(x); },
+    'goToOwner':()=>{ _showingCreated=false; setHash({o:x}); renderOwner(x,1); },
+    'ownerStep':()=>{ _ownerStep=parseInt(x); renderOwner(y,parseInt(x)); },
 
     'copyCode':()=>copyText(x),
     'shareNative':()=>shareNative(x,y),
@@ -475,74 +478,71 @@ async function joinList(){
   } else { setHash({g:code}); renderGuest(code); }
 }
 
-// ── VISTA ORGANIZADOR ──
-async function renderOwner(code){
-  const data=await sGet('ev:'+code);
-  if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
-  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
-  const guestLink=BASE_URL+'#g='+code;
-  render(`
-    <h1>🎁 ${esc(data.title)}</h1>
-    <p class="sub">Sos el organizador. Podés agregar y borrar regalos cuando quieras.</p>
+// ── VISTA ORGANIZADOR (wizard por pasos) ──
+let _ownerStep = 1;
+
+function ownerStepContent(data, code, guestLink, step){
+  const STEPS = ['🎁 Mis regalos', '⚙️ Mis datos', '🚀 Compartir'];
+
+  // Indicador de pasos
+  const stepBar = `
+    <div style="display:flex;gap:4px;margin-bottom:16px">
+      ${STEPS.map((s,i)=>`
+        <div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:.72rem;font-weight:600;cursor:pointer;
+          background:${i+1===step?'var(--accent)':'var(--bg)'};
+          color:${i+1===step?'#fff':'var(--muted)'};
+          border:1.5px solid ${i+1===step?'var(--accent)':'var(--line)'}"
+          data-a="ownerStep" data-x="${i+1}" data-y="${esc(code)}">
+          ${s}
+        </div>`).join('')}
+    </div>`;
+
+  if(step===1) return stepBar + `
+    ${moneyDonationsSection(data)}
+    ${addrRequestsSection(data,code)}
     <div class="card">
-      <label>Código (para que lo copien tus amigos)</label>
-      <div class="codebox">${esc(code)}</div>
-      <button class="ghost sm" data-a="copyCode" data-x="${esc(code)}">Copiar código</button>
-      <div style="margin-top:10px">
-        <label>Link directo para invitados</label>
-        <div class="linkbox">${esc(guestLink)}</div>
-        <button class="ghost sm" style="margin-top:6px" data-a="copyLink" data-x="${esc(guestLink)}">Copiar link</button>
+      <h3 style="margin:0 0 8px">Agregar regalo a la lista</h3>
+      <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
+        💡 Cuanto más detallés el regalo (marca, modelo, color), más fácil le va a ser a quien lo compre.
       </div>
-    </div>
-    <div class="card" style="background:#f0f7f0;border-color:#5c7a52">
-      <h3 style="margin:0 0 6px;color:#2d5a1b">🚀 Compartir la lista</h3>
-      <p style="font-size:.8rem;color:var(--muted);margin:0 0 10px">Mandásela a tus amigos para que elijan qué regalarte.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-          style="background:#25D366;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          💬 WhatsApp
-        </button>
-        <button data-a="shareFacebook" data-x="${esc(guestLink)}"
-          style="background:#1877F2;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          📘 Facebook
-        </button>
-        <button data-a="shareX" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-          style="background:#000;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          𝕏 Twitter/X
-        </button>
-        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
-          style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border:none;color:#fff;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          📸 Instagram
-        </button>
+      <input id="newName" placeholder="Ej: Lavarropa Samsung 8kg color blanco">
+      <label>Link del producto <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+      <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
+      <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+        <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
+        <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
+        <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Regalar el valor estimado</label>
       </div>
-      <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-        style="width:100%;margin-top:8px;background:#fff;border:1px solid var(--line);color:#333;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
-        ⋯ Más opciones (menú del celular)
-      </button>
+      <button data-a="addGift" data-x="${esc(code)}" style="width:100%">+ Agregar regalo</button>
     </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Lista de regalos (${data.gifts.length})</h3>
+      ${ownerGiftList(data,code)}
+    </div>
+    <button data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;font-size:1rem;margin-top:4px">
+      Siguiente → Mis datos de contacto
+    </button>`;
+
+  if(step===2) return stepBar + `
     <div class="card">
       <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar dinero, poné tu alias de Mercado Pago, CBU o CVU.</p>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá tu alias de Mercado Pago, CBU o CVU.</p>
       ${data.alias ? `
         <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.9rem;font-weight:600;text-align:center;letter-spacing:1px">
           💳 ${esc(data.alias)}
         </div>
-        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:6px">Copiar alias</button>` :
-        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 6px">No cargaste alias todavía.</p>'}
-      <details style="margin-top:4px">
-        <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.alias?'Editar alias':'Cargar alias'}</summary>
-        <div style="margin-top:8px">
-          <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
-          <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar alias</button>
-        </div>
-      </details>
+        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:8px">Copiar alias</button>` :
+        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 8px">No cargaste alias todavía.</p>'}
+      <label>Tu alias / CBU / CVU</label>
+      <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
+      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar alias</button>
     </div>
     <div class="card">
       <h3 style="margin:0 0 4px">📦 Direcciones de envío <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">🔒 Solo las ves vos. Las compartís manualmente a quien te pida enviarte un regalo.</p>
-
-      <!-- DOMICILIO -->
-      <div style="border:1px solid var(--line);border-radius:6px;padding:10px;margin-bottom:8px">
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">🔒 Solo las ves vos. Las compartís a quien te pida enviarte un regalo.</p>
+      <div style="border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px">
         <b style="font-size:.85rem">🏠 Domicilio particular</b>
         ${data.addrHome&&data.addrHome.calle ? `
           <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
@@ -550,12 +550,11 @@ async function renderOwner(code){
             ${esc(data.addrHome.calle)}<br>
             ${data.addrHome.ciudad?esc(data.addrHome.ciudad)+(data.addrHome.cp?' — CP: '+esc(data.addrHome.cp):'')+'<br>':''}
             ${data.addrHome.pais?esc(data.addrHome.pais)+'<br>':''}
-            ${data.addrHome.notas?'<i>'+esc(data.addrHome.notas)+'</i>':''}
           </div>
           <button class="ghost sm" data-a="copyAddr" data-x="home" data-y="${esc(code)}">Copiar dirección</button>` :
-          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 0">No cargada.</p>'}
+          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 4px">No cargada.</p>'}
         <details style="margin-top:8px">
-          <summary style="cursor:pointer;font-size:.82rem;color:var(--red-dark)">${data.addrHome&&data.addrHome.calle?'Editar':'Cargar'}</summary>
+          <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.addrHome&&data.addrHome.calle?'Editar domicilio':'+ Cargar domicilio'}</summary>
           <div style="margin-top:8px">
             <label>Nombre del destinatario</label>
             <input id="homeNombre" placeholder="Ej: Agustín García" value="${esc(data.addrHome&&data.addrHome.nombre||'')}">
@@ -565,17 +564,13 @@ async function renderOwner(code){
               <div style="flex:2"><label>Ciudad</label><input id="homeCiudad" placeholder="Buenos Aires" value="${esc(data.addrHome&&data.addrHome.ciudad||'')}"></div>
               <div style="flex:1"><label>CP</label><input id="homeCP" placeholder="C1043" value="${esc(data.addrHome&&data.addrHome.cp||'')}"></div>
             </div>
-            <label>País</label>
-            <input id="homePais" placeholder="Argentina" value="${esc(data.addrHome&&data.addrHome.pais||'')}">
-            <label>Notas (timbre, horario, etc.)</label>
-            <input id="homeNotas" placeholder="Tocar timbre, entre 9-18hs" value="${esc(data.addrHome&&data.addrHome.notas||'')}">
-            <button data-a="saveAddress" data-x="home" data-y="${esc(code)}" style="margin-top:4px">Guardar domicilio</button>
+            <label>País</label><input id="homePais" placeholder="Argentina" value="${esc(data.addrHome&&data.addrHome.pais||'')}">
+            <label>Notas</label><input id="homeNotas" placeholder="Tocar timbre, entre 9-18hs" value="${esc(data.addrHome&&data.addrHome.notas||'')}">
+            <button data-a="saveAddress" data-x="home" data-y="${esc(code)}" style="margin-top:4px;width:100%">Guardar domicilio</button>
           </div>
         </details>
       </div>
-
-      <!-- CORREO POSTAL -->
-      <div style="border:1px solid var(--line);border-radius:6px;padding:10px">
+      <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
         <b style="font-size:.85rem">📮 Correo postal más cercano</b>
         ${data.addrPost&&data.addrPost.calle ? `
           <div style="font-size:.82rem;color:#333;margin:6px 0;line-height:1.6">
@@ -583,59 +578,104 @@ async function renderOwner(code){
             ${esc(data.addrPost.calle)}<br>
             ${data.addrPost.ciudad?esc(data.addrPost.ciudad)+(data.addrPost.cp?' — CP: '+esc(data.addrPost.cp):'')+'<br>':''}
             ${data.addrPost.pais?esc(data.addrPost.pais)+'<br>':''}
-            ${data.addrPost.notas?'<i>'+esc(data.addrPost.notas)+'</i>':''}
           </div>
           <button class="ghost sm" data-a="copyAddr" data-x="post" data-y="${esc(code)}">Copiar dirección</button>` :
-          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 0">No cargada.</p>'}
+          '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0 4px">No cargada.</p>'}
         <details style="margin-top:8px">
-          <summary style="cursor:pointer;font-size:.82rem;color:var(--red-dark)">${data.addrPost&&data.addrPost.calle?'Editar':'Cargar'}</summary>
+          <summary style="cursor:pointer;font-size:.82rem;color:var(--accent)">${data.addrPost&&data.addrPost.calle?'Editar correo postal':'+ Cargar correo postal'}</summary>
           <div style="margin-top:8px">
-            <label>Nombre / sucursal del correo</label>
-            <input id="postNombre" placeholder="Ej: OCA Sucursal Palermo (a nombre de Agustín García)" value="${esc(data.addrPost&&data.addrPost.nombre||'')}">
+            <label>Nombre / sucursal</label>
+            <input id="postNombre" placeholder="Ej: OCA Sucursal Palermo" value="${esc(data.addrPost&&data.addrPost.nombre||'')}">
             <label>Dirección del correo</label>
             <input id="postCalle" placeholder="Ej: Thames 1234" value="${esc(data.addrPost&&data.addrPost.calle||'')}">
             <div style="display:flex;gap:8px">
               <div style="flex:2"><label>Ciudad</label><input id="postCiudad" placeholder="Buenos Aires" value="${esc(data.addrPost&&data.addrPost.ciudad||'')}"></div>
               <div style="flex:1"><label>CP</label><input id="postCP" placeholder="C1414" value="${esc(data.addrPost&&data.addrPost.cp||'')}"></div>
             </div>
-            <label>País</label>
-            <input id="postPais" placeholder="Argentina" value="${esc(data.addrPost&&data.addrPost.pais||'')}">
-            <label>Notas (horario, referencia, etc.)</label>
-            <input id="postNotas" placeholder="Lun-Vie 9-18hs, pedir por García" value="${esc(data.addrPost&&data.addrPost.notas||'')}">
-            <button data-a="saveAddress" data-x="post" data-y="${esc(code)}" style="margin-top:4px">Guardar correo postal</button>
+            <label>País</label><input id="postPais" placeholder="Argentina" value="${esc(data.addrPost&&data.addrPost.pais||'')}">
+            <label>Notas</label><input id="postNotas" placeholder="Lun-Vie 9-18hs" value="${esc(data.addrPost&&data.addrPost.notas||'')}">
+            <button data-a="saveAddress" data-x="post" data-y="${esc(code)}" style="margin-top:4px;width:100%">Guardar correo postal</button>
           </div>
         </details>
       </div>
     </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Atrás</button>
+      <button data-a="ownerStep" data-x="3" data-y="${esc(code)}" style="flex:2;padding:14px;font-size:1rem">Siguiente → Compartir</button>
+    </div>`;
+
+  if(step===3) return stepBar + `
     <div class="card">
-      <h3 style="margin:0 0 10px">Agregar regalo</h3>
-      <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
-        💡 <b>Tip:</b> Cuanto más detallés el regalo (marca, modelo, color, talle), más fácil le va a ser a quien lo compre. Si encontraste el producto online, pegá el link directo.
-      </div>
-      <input id="newName" placeholder="Ej: Lavarropa Samsung 8kg color blanco">
-      <label>Link del producto <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-      <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
-      <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional — para que puedan regalar el dinero)</span></label>
-      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off">
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
-        <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
-        <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
-        <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Permitir donación de dinero</label>
-      </div>
-      <button data-a="addGift" data-x="${esc(code)}">Agregar a la lista</button>
+      <label>Código de la lista</label>
+      <div class="codebox">${esc(code)}</div>
+      <button class="ghost sm" data-a="copyCode" data-x="${esc(code)}" style="width:100%;margin-bottom:10px">Copiar código</button>
+      <label>Link directo para invitados</label>
+      <div class="linkbox">${esc(guestLink)}</div>
+      <button class="ghost sm" data-a="copyLink" data-x="${esc(guestLink)}" style="width:100%;margin-top:6px">Copiar link</button>
     </div>
-    ${moneyDonationsSection(data)}
-    ${addrRequestsSection(data,code)}
-    <div class="card">
-      <h3 style="margin:0 0 10px">Regalos en la lista (${data.gifts.length})</h3>
-      ${ownerGiftList(data,code)}
+    <div class="card" style="background:#f0f7f0;border-color:var(--accent)">
+      <h3 style="margin:0 0 8px;color:#1b4332">🚀 Compartir la lista</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin:0 0 12px">Mandásela a tus amigos para que elijan qué regalarte.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#25D366;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          💬 WhatsApp
+        </button>
+        <button data-a="shareFacebook" data-x="${esc(guestLink)}"
+          style="background:#1877F2;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          📘 Facebook
+        </button>
+        <button data-a="shareX" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#000;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          𝕏 Twitter/X
+        </button>
+        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
+          style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          📸 Instagram
+        </button>
+      </div>
+      <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+        style="width:100%;background:#fff;border:1px solid var(--line);color:#333;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
+        ⋯ Más opciones
+      </button>
     </div>
-    <footer>Vista organizador · <span data-a="home" style="color:var(--red);cursor:pointer;text-decoration:underline">salir</span> · <span data-a="deleteList" data-x="${esc(code)}" style="color:#c0392b;cursor:pointer;text-decoration:underline">borrar lista</span></footer>
+    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;margin-top:4px">← Atrás</button>`;
+
+  return '';
+}
+
+async function renderOwner(code, step){
+  step = step || _ownerStep || 1;
+  _ownerStep = step;
+  const data=await sGet('ev:'+code);
+  if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
+  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+  const guestLink=BASE_URL+'#g='+code;
+  render(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h1 style="margin:0;font-size:1.3rem">🎁 ${esc(data.title)}</h1>
+    </div>
+    <p class="sub" style="margin-bottom:12px">Panel del organizador</p>
+    ${ownerStepContent(data,code,guestLink,step)}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="ghost" data-a="home" style="flex:1;padding:12px;font-size:.9rem">🚪 Salir</button>
+      <button class="ghost" data-a="deleteList" data-x="${esc(code)}"
+        style="flex:1;padding:12px;font-size:.9rem;color:#c0392b;border-color:#c0392b">
+        🗑️ Borrar lista
+      </button>
+    </div>
+    <footer>Regálame · Gratis y sin publicidad<br>by Agus — Rodo<br>
+<span class="privacy-link" data-a="showPrivacy">📄 Términos de uso y Privacidad</span></footer>
   `);
-  // Auto-refresh cada 5s
   clearTimeout(window._ownerTimer);
   window._ownerTimer=setTimeout(async()=>{
-    if(getHash().o===code){ const d=await sGet('ev:'+code); if(d){ const el=document.querySelector('.card:last-of-type'); if(el)el.innerHTML='<h3 style="margin:0 0 10px">Regalos en la lista ('+d.gifts.length+')</h3>'+ownerGiftList(d,code); } }
+    if(getHash().o===code && _ownerStep===1){
+      const d=await sGet('ev:'+code);
+      if(d){
+        const giftsCard=document.querySelector('[data-a="addGift"]')?.closest('.card')?.nextElementSibling;
+        if(giftsCard) giftsCard.innerHTML='<h3 style="margin:0 0 10px">Lista de regalos ('+d.gifts.length+')</h3>'+ownerGiftList(d,code);
+      }
+    }
   },5000);
 }
 
@@ -1408,6 +1448,75 @@ function shareOther(guestLink,title){
     copyText(url);
     alert('Link copiado al portapapeles.');
   }
+}
+
+function showPrivacy(){
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal" style="max-height:85vh;overflow-y:auto">
+    <h3 style="margin:0 0 4px">📄 Términos de uso y Privacidad</h3>
+    <p style="font-size:.72rem;color:var(--muted);margin:0 0 14px">Regálame · Versión vigente: agosto 2025</p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">1. Información general</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      Regálame es una aplicación web gratuita creada por particulares (Agus y Rodo) para
+      coordinar listas de regalos entre personas. No es una empresa ni un servicio comercial.
+      El uso de la app es completamente voluntario y gratuito.
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">2. Datos que se recopilan</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      La app puede guardar los siguientes datos ingresados voluntariamente por el usuario:
+      nombre o apodo, datos de contacto (teléfono, email u otro), dirección postal (opcional),
+      alias de transferencia bancaria (opcional) y código de acceso a la lista.<br><br>
+      Estos datos se almacenan en <b>Supabase</b>, un servicio de base de datos en la nube
+      con servidores en São Paulo, Brasil. Supabase cuenta con cifrado en tránsito (HTTPS)
+      y en reposo. No se almacenan contraseñas en texto plano mediante hash.
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">3. Uso de los datos</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      Los datos ingresados se usan exclusivamente para el funcionamiento de la lista de regalos.
+      <b>No se venden, ceden ni comparten con terceros</b> con fines comerciales ni de ningún otro tipo.
+      No se usan para publicidad ni para perfilar a los usuarios.
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">4. Responsabilidad del usuario</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      El organizador de la lista es el único responsable de decidir si comparte su dirección
+      postal u otros datos sensibles con los invitados. Regálame actúa como intermediario técnico
+      y <b>no se hace responsable del uso que terceros hagan de esa información</b> una vez compartida
+      fuera de la aplicación.<br><br>
+      El usuario declara que los datos que ingresa son propios o que cuenta con el consentimiento
+      de la persona cuyos datos ingresa, conforme al <b>art. 5 de la Ley 25.326</b> (Ley de
+      Protección de Datos Personales de la República Argentina).
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">5. Derechos del usuario</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      Conforme a la <b>Ley 25.326</b>, el usuario tiene derecho a acceder, rectificar y suprimir
+      sus datos. Para ejercer estos derechos, el organizador puede borrar su lista directamente
+      desde la app (opción "Borrar lista" en el panel), lo que elimina todos los datos asociados
+      de la base de datos.
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">6. Limitación de responsabilidad</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
+      Regálame se provee "tal como está", sin garantías de disponibilidad continua. Los creadores
+      no se responsabilizan por pérdida de datos, interrupciones del servicio ni por daños derivados
+      del uso de la aplicación. Al usar la app, el usuario acepta estas condiciones.
+    </p>
+
+    <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">7. Ley aplicable</p>
+    <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 10px">
+      Esta política se rige por las leyes de la <b>República Argentina</b>, en particular:
+      Ley 25.326 (Protección de Datos Personales), Ley 24.240 (Defensa del Consumidor)
+      y normativa de la AAIP (Agencia de Acceso a la Información Pública).
+    </p>
+
+    <button data-a="closeModal" style="width:100%;margin-top:16px">Cerrar</button>
+  </div>`;
+  document.body.appendChild(modal);
 }
 
 function clearLastList(){
