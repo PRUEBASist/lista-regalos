@@ -201,6 +201,25 @@ function dispatch(a,x,y){
     'finalConfirm':()=>finalConfirm(x,y),
     'closeAndRefresh':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); renderGuest(x); },
     'copyLink':()=>copyText(x),
+    'copyText':()=>copyText(x),
+    'goToOwner':()=>{ setHash({o:x}); renderOwner(x); },
+    'sendOwnerMail':()=>{
+      const [pass,title,owner,email]=y.split('|||');
+      const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+      const guestLink=BASE_URL+'#g='+x;
+      const subject=encodeURIComponent('Tu lista "'+title+'" está lista 🎁');
+      const body=encodeURIComponent(
+        'Hola '+owner+'! Tu lista Regálame ya está creada.\n\n'+
+        '📋 DATOS PRIVADOS DE ORGANIZADOR:\n'+
+        '• Código: '+x+'\n'+
+        '• Contraseña: '+pass+'\n\n'+
+        '🔗 LINK PARA COMPARTIR CON TUS AMIGOS:\n'+
+        guestLink+'\n\n'+
+        'Tus amigos solo necesitan ese link — sin contraseña.\n\n'+
+        'Regálame 🎁'
+      );
+      openMailto('mailto:'+email+'?subject='+subject+'&body='+body);
+    },
     'copyCode':()=>copyText(x),
     'shareNative':()=>shareNative(x,y),
     'shareFacebook':()=>shareFacebook(x),
@@ -262,6 +281,18 @@ function renderHome(){
 function renderCreate(){
   render(`
     <h1>Regálame 🎁</h1>
+
+    <div class="card" style="background:#f0f7f0;border-color:var(--accent)">
+      <p style="margin:0;font-size:.85rem;line-height:1.6;color:#1b4332">
+        📧 <b>Necesitás poner tu email.</b><br>
+        Al crear la lista te mandamos automáticamente:<br>
+        &nbsp;&nbsp;✓ El link para compartir con tus amigos<br>
+        &nbsp;&nbsp;✓ Tu código de lista<br>
+        &nbsp;&nbsp;✓ Tu contraseña privada de organizador (generada automáticamente)<br>
+        <span style="font-size:.75rem;color:var(--accent)">La contraseña la genera la app — nadie más puede entrar a editar tu lista.</span>
+      </p>
+    </div>
+
     <div class="card">
       <label>Tipo de evento</label>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="occGrid">
@@ -275,33 +306,43 @@ function renderCreate(){
       <input type="hidden" id="occType" value="cumple">
       <label id="ownerLabel">¿Quién festeja?</label>
       <input id="ownerName" placeholder="Ej: Martín">
-      <label>Título de la lista (opcional)</label>
+      <label>Título de la lista <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
       <input id="listTitle" placeholder="Ej: Cumple de Martín">
-      <label>Tu email <span style="font-weight:400;color:var(--muted)">(te mandamos el acceso de organizador)</span></label>
+      <label>Tu email <span style="color:#c0392b">*obligatorio</span></label>
       <input id="ownerEmail" type="email" placeholder="tucorreo@email.com">
-      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">Recomendado — te mandamos el link y tu contraseña privada por mail.</p>
-      <label>Tu contraseña de organizador <span style="font-weight:400;color:var(--muted)">(solo vos la sabés)</span></label>
-      <input id="ownerPass" type="password" placeholder="Elegí algo fácil de recordar, ej: cumple2025">
-      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 12px">🔒 Con esta contraseña podés entrar a editar la lista. Los invitados no la necesitan.</p>
-      <button data-a="createList">Crear lista ✓</button>
-      <div style="margin-top:8px"><button class="ghost sm" data-a="home">Volver</button></div>
+      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 16px">
+        Te llegará el link para compartir y tu contraseña privada. No se comparte con nadie.
+      </p>
+      <button data-a="createList" style="width:100%;padding:14px;font-size:1rem">
+        Crear lista y recibir mis datos ✓
+      </button>
+      <div style="margin-top:8px"><button class="ghost sm" data-a="home" style="width:100%">Volver</button></div>
     </div>
   `);
+}
+
+function genPass(){
+  // Genera contraseña aleatoria simple: 3 palabras cortas + número
+  const words=['sol','mar','rio','luz','voz','paz','flor','luna','cielo','verde','rosa','azul','rojo','nube'];
+  const w1=words[Math.floor(Math.random()*words.length)];
+  const w2=words[Math.floor(Math.random()*words.length)];
+  const n=Math.floor(Math.random()*90)+10;
+  return w1+'-'+w2+'-'+n;
 }
 
 async function createList(){
   const owner=(document.getElementById('ownerName')||{}).value||'';
   const title=(document.getElementById('listTitle')||{}).value||'';
-  const pass=((document.getElementById('ownerPass')||{}).value||'').trim();
-  if(!owner.trim()){alert('Escribí el nombre');return;}
-  if(!pass){alert('Elegí una contraseña de organizador — la necesitás para editar la lista.');return;}
+  if(!owner.trim()){alert('Escribí el nombre de quien festeja');return;}
   const email=((document.getElementById('ownerEmail')||{}).value||'').trim();
+  if(!email){alert('El email es obligatorio — te mandamos el link y tu contraseña privada ahí.');return;}
   const btn=document.querySelector('[data-a="createList"]');
   if(btn){btn.disabled=true;btn.textContent='Creando...';}
+  const pass=genPass();
   const code=genCode();
   const occType=(document.getElementById('occType')||{}).value||'cumple';
   const occData=OCCASIONS[occType]||OCCASIONS['cumple'];
-  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email||null,ownerPass:pass,gifts:[],created:Date.now()};
+  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email,ownerPass:pass,gifts:[],created:Date.now()};
   await sSet('ev:'+code, data);
   lsSet('lastOwnerCode', code);
   lsSet('lastOwnerTitle', data.title);
@@ -324,8 +365,71 @@ async function createList(){
     const mailto='mailto:'+email+'?subject='+subject+'&body='+body;
     setTimeout(()=>openMailto(mailto), 800);
   }
+  // Mostrar pantalla de confirmación con todos los datos
   setHash({o:code});
-  renderOwner(code);
+  renderCreated(code, data, pass);
+}
+
+function renderCreated(code, data, pass){
+  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+  const guestLink=BASE_URL+'#g='+code;
+  const ownerLink=BASE_URL+'#o='+code;
+  render(`
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2.5rem">🎉</div>
+      <h1 style="margin:8px 0 4px">¡Lista creada!</h1>
+      <p class="sub">${esc(data.title)}</p>
+    </div>
+
+    <div class="card" style="border:2px solid #f0c040;background:#fffdf0">
+      <p style="margin:0 0 10px;font-size:.88rem;font-weight:700;color:#7a5c00">
+        🔒 TUS DATOS PRIVADOS DE ORGANIZADOR — guardálos
+      </p>
+
+      <label>Código de la lista</label>
+      <div class="codebox" style="letter-spacing:6px;font-size:1.3rem">${esc(code)}</div>
+      <button class="ghost sm" data-a="copyText" data-x="${esc(code)}" style="width:100%;margin-bottom:12px">Copiar código</button>
+
+      <label>Tu contraseña de organizador</label>
+      <div class="codebox" style="letter-spacing:2px;color:#7a5c00;border-color:#f0c040">${esc(pass)}</div>
+      <button class="ghost sm" data-a="copyText" data-x="${esc(pass)}" style="width:100%;margin-bottom:12px">Copiar contraseña</button>
+
+      <p style="font-size:.75rem;color:#7a5c00;margin:0;text-align:center">
+        ⚠️ Necesitás estos datos para volver a editar la lista. Guardálos en algún lugar seguro.
+      </p>
+    </div>
+
+    <div class="card" style="border-color:var(--accent)">
+      <p style="margin:0 0 10px;font-size:.88rem;font-weight:700;color:var(--accent)">
+        🔗 LINK PARA COMPARTIR CON TUS AMIGOS
+      </p>
+      <div class="linkbox">${esc(guestLink)}</div>
+      <button data-a="copyText" data-x="${esc(guestLink)}" style="width:100%;margin:8px 0">Copiar link para amigos</button>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#25D366;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
+          💬 WhatsApp
+        </button>
+        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
+          style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border:none;color:#fff;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
+          📸 Instagram
+        </button>
+      </div>
+    </div>
+
+    ${data.ownerEmail?`
+    <div class="card">
+      <p style="margin:0 0 8px;font-size:.88rem;font-weight:600">📧 Enviarte todo por mail</p>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Abre tu correo con el código, la contraseña y el link — solo tocá Enviar.</p>
+      <button data-a="sendOwnerMail" data-x="${esc(code)}" data-y="${esc(pass+'|||'+data.title+'|||'+data.owner+'|||'+data.ownerEmail)}"
+        style="width:100%">📧 Enviarme los datos por mail</button>
+    </div>`:''}
+
+    <button data-a="goToOwner" data-x="${esc(code)}" style="width:100%;margin-top:4px">
+      Ir a mi lista →
+    </button>
+  `);
 }
 
 function renderJoin(){
