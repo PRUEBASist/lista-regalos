@@ -159,6 +159,7 @@ async function sSet(key,val){
 // ── ESTADO GLOBAL ──
 const app = document.getElementById('app');
 let guestName = '';
+let _showingCreated = false;
 let _currentGuestCode = '';
 function loadGuestName(code){
   try{return localStorage.getItem('gn:'+code)||'';}catch(e){return '';}
@@ -240,7 +241,7 @@ function dispatch(a,x,y){
     'closeAndRefresh':()=>{ const m=document.querySelector('.modal-bg');if(m)m.remove(); renderGuest(x); },
     'copyLink':()=>copyText(x),
     'copyText':()=>copyText(x),
-    'goToOwner':()=>{ setHash({o:x}); renderOwner(x); },
+    'goToOwner':()=>{ _showingCreated=false; setHash({o:x}); renderOwner(x); },
 
     'copyCode':()=>copyText(x),
     'shareNative':()=>shareNative(x,y),
@@ -355,8 +356,8 @@ async function createList(){
   lsSet('lastOwnerCode', code);
   lsSet('lastOwnerTitle', data.title);
 
-  // Mostrar pantalla de confirmación — NO cambiamos hash todavía para no disparar renderOwner
-  setHash({});
+  // Bloquear hashchange y mostrar pantalla de confirmación
+  _showingCreated = true;
   renderCreated(code, data, pass);
 }
 
@@ -1228,6 +1229,7 @@ async function deleteList(code){
   else renderHome();
 })();
 window.addEventListener('hashchange',function(){
+  if(_showingCreated) return; // no pisar la pantalla de confirmación
   clearTimeout(window._ownerTimer);clearTimeout(window._guestTimer);
   const h=getHash();
   if(h.o) renderOwner(h.o);
