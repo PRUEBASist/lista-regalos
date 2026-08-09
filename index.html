@@ -1078,7 +1078,13 @@ async function pickGift(code,gid){
       <h3>${esc(g.name)}</h3>
       ${g.price?`<p style="margin:0 0 8px;font-size:.82rem;background:#fff3cd;border-radius:6px;padding:6px 10px">💰 Precio estimado: <b>${esc(g.price)}</b></p>`:''}
       ${aliasSection}
-      <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px">Reservando para vos. Nadie más va a poder elegir este regalo.</p>
+      ${g.price||data.alias?`
+      <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:10px;font-size:.82rem;color:#1b4332;line-height:1.5">
+        Tenés dos opciones:<br>
+        <b>🎁 Elegir el regalo</b> — lo comprás vos completo y lo reservás para que nadie más lo elija.<br>
+        ${data.alias?`<b>💸 Regalar el valor estimado</b> — hacés una transferencia por el monto que puedas aportar. El regalo sigue disponible para más aportes.`:''}
+      </div>`:''}
+      <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px">Si elegís el regalo, quedará reservado para vos y nadie más podrá elegirlo.</p>
       ${(g.allowPhys&&g.allowDig)?`
         <label>¿Lo comprás físico o digital?</label>
         <div class="toggle-row">
