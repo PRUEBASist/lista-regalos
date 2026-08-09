@@ -369,7 +369,7 @@ async function createList(){
 }
 
 function renderCreated(code, data, pass){
-  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+  const BASE_URL='https://elregalo.com.ar/';
   const guestLink=BASE_URL+'#g='+code;
   render(`
     <div style="text-align:center;margin-bottom:16px">
@@ -604,7 +604,7 @@ async function renderOwner(code, step){
   _ownerStep = step;
   const data=await sGet('ev:'+code);
   if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
-  const BASE_URL='https://pruebasist.github.io/lista-regalos/';
+  const BASE_URL='https://elregalo.com.ar/';
   const guestLink=BASE_URL+'#g='+code;
   render(`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
