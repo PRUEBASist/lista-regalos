@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Regálame 🎁</title>
+<title>elregalo.com.ar 🎁</title>
 <style>
 :root{
   --bg:#f8f8f6;--surface:#ffffff;--ink:#1a1a1a;--ink2:#555;
@@ -294,8 +294,10 @@ function renderHome(){
     </div>` : '';
   render(`
     <div class="app-logo">
-      <div class="logo-text">Regálame 🎁</div>
-      <div class="logo-sub">Coordiná regalos sin sorpresas arruinadas</div>
+      <div class="logo-text" style="font-size:1.6rem">🎁 elregalo.com.ar</div>
+      <div class="logo-sub" style="font-size:.95rem;color:#2d6a4f;font-style:italic;margin-top:6px;font-weight:600">
+        Creá la lista para el regalo que tanto querés.
+      </div>
     </div>
     ${lastInfo}
     <div class="card">
@@ -304,14 +306,14 @@ function renderHome(){
         <button class="ghost" data-a="goCreate">Crear lista nueva</button>
       </div>
     </div>
-    <footer>Regálame · Gratis y sin publicidad · by Agus &amp; Rodo</footer>
+    <footer>elregalo.com.ar · Gratis y sin publicidad · by Agus &amp; Rodo</footer>
   `);
 }
 
 function renderCreate(){
   setHash({});  // limpiar hash para evitar que cargue lista vieja
   render(`
-    <h1>Regálame 🎁</h1>
+    <h1>elregalo.com.ar 🎁</h1>
 
     <div class="card">
       <label>Tipo de evento</label>
@@ -435,7 +437,7 @@ function renderCreated(code, data, pass){
 
 function renderJoin(){
   render(`
-    <h1>Regálame 🎁</h1>
+    <h1>elregalo.com.ar 🎁</h1>
     <div class="card">
       <label>Código de la lista</label>
       <input id="joinCode" placeholder="Ej: AB12C" style="text-transform:uppercase;letter-spacing:.1em">
@@ -505,11 +507,16 @@ function ownerStepContent(data, code, guestLink, step){
       <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
         💡 Cuanto más detallés el regalo (marca, modelo, color), más fácil le va a ser a quien lo compre.
       </div>
-      <input id="newName" placeholder="Ej: Lavarropa Samsung 8kg color blanco">
+      <input id="newName" id="newName" placeholder="Ej: ver sugerencia abajo" onfocus="rotatePlaceholder(this)">
       <label>Link del producto <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
       <input id="newLink" placeholder="https://www.mercadolibre.com.ar/...">
       <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off">
+      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off"
+        oninput="formatAmount(this)">
+      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 10px;line-height:1.4">
+        💡 El precio estimado sirve para que quien quiera pueda regalarte el valor completo
+        o aportar un porcentaje para que puedas comprarlo vos.
+      </p>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
         <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
         <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
@@ -619,7 +626,7 @@ async function renderOwner(code, step){
         🗑️ Borrar lista
       </button>
     </div>
-    <footer>Regálame · Gratis y sin publicidad<br>by Agus — Rodo<br>
+    <footer>elregalo.com.ar · Gratis y sin publicidad<br>by Agus — Rodo<br>
 <span class="privacy-link" data-a="showPrivacy">📄 Términos de uso y Privacidad</span></footer>
   `);
   clearTimeout(window._ownerTimer);
@@ -675,7 +682,7 @@ function addrRequestsSection(data,code){
       </p>
       <div style="background:#fff3cd;border:1px solid #f0c040;border-radius:8px;padding:10px;margin-bottom:12px;font-size:.76rem;color:#7a5c00;line-height:1.5">
         ⚠️ <b>Atención:</b> Compartir tu dirección es una decisión personal tuya.
-        Regálame no se responsabiliza por el uso que se haga de esa información.
+        elregalo.com.ar no se responsabiliza por el uso que se haga de esa información.
         Verificá que conocés a la persona antes de compartir.
       </div>
       ${reqs.map(r=>`
@@ -728,6 +735,9 @@ async function addGift(code){
   const priceEl=document.getElementById('newPrice');
   const price=((priceEl||{}).value||'').trim();
   const allowMoney=!!(document.getElementById('allowMoney')&&document.getElementById('allowMoney').checked);
+  if(allowMoney&&!data.alias){
+    if(!confirm('⚠️ Habilitaste "Regalar el valor estimado" pero no cargaste tu alias/CBU.\n\nSin alias nadie puede transferirte. ¿Querés agregarlo después en Mis datos?\n\nTocá Aceptar para continuar igual, o Cancelar para cargarlo primero.')){return;}
+  }
   data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,allowMoney,manualLink:manualLink||null,price:price||null,claimedBy:null});
   await sSet('ev:'+code,data);
   renderOwner(code);
@@ -840,7 +850,7 @@ function guestGiftList(data,code){
             const gDonations=(data.moneyDonations||[]).filter(d=>d.giftId===g.id);
             if(!gDonations.length||!g.price) return '';
             const total=gDonations.reduce((s,d)=>s+(d.amountNum||0),0);
-            const priceN=parseFloat(g.price.replace(/[^0-9.,]/g,'').replace(',','.'));
+            const priceN=parseArgNum(g.price);
             const pct=priceN>0?Math.min(100,Math.round(total/priceN*100)):0;
             const moneda=total>=1000||priceN>=1000?'$':'$';
             return `<div style="margin-top:6px">
@@ -852,7 +862,7 @@ function guestGiftList(data,code){
                 <div style="background:${pct>=100?'#27ae60':'var(--accent)'};height:8px;border-radius:20px;width:${pct}%;transition:width .3s"></div>
               </div>
               <p style="font-size:.7rem;color:${pct>=100?'#27ae60':'var(--muted)'};margin:3px 0 0;text-align:right">
-                ${pct>=100?'✅ ¡Regalo cubierto!':pct+'% completado'}
+                ${pct>=100?'✅ ¡Valor cubierto por aportes!':pct+'% del valor aportado'}
               </p>
             </div>`;
           })()}
@@ -913,6 +923,20 @@ async function reopenConfirm(code,gid){
   document.body.appendChild(modal);
 }
 
+const GIFT_EXAMPLES=[
+  'Lavarropa Samsung 8kg blanco','Kindle Paperwhite 16GB','Cafetera Nespresso Essenza',
+  'Auriculares Sony WH-1000XM5','Set de sartenes antiadherentes','Bicicleta de paseo rodado 26',
+  'Smart TV 50" Samsung 4K','Licuadora Oster 600W','Juego de sábanas 2 plazas premium',
+  'Perfume 212 VIP Carolina Herrera','Zapatos de cuero talle 40','Robot de cocina Moulinex',
+  'Tablet Samsung Galaxy Tab A8','Tostadora Oster 4 ranuras','Colchón sommier 2 plazas',
+  'Juego de copas cristal x6','Mochila impermeable 30L','Set de cuchillos alemanes',
+];
+let _exIdx=Math.floor(Math.random()*GIFT_EXAMPLES.length);
+function rotatePlaceholder(inp){
+  inp.placeholder='Ej: '+GIFT_EXAMPLES[_exIdx%GIFT_EXAMPLES.length];
+  _exIdx++;
+}
+
 function selectCurrency(cur){
   document.getElementById('moneyCurrency').value=cur;
   document.getElementById('btnARS').style.background=cur==='ARS'?'var(--accent)':'#fff';
@@ -924,8 +948,13 @@ function formatAmount(input){
   let v=input.value.replace(/[^0-9]/g,'');
   if(v) input.value=parseInt(v).toLocaleString('es-AR');
 }
+function parseArgNum(str){
+  // Elimina todo excepto dígitos — maneja formato argentino con puntos de miles
+  if(!str) return 0;
+  return parseFloat(String(str).replace(/[^0-9]/g,'')) || 0;
+}
 function parseAmount(input){
-  return parseFloat((input.value||'0').replace(/\./g,'').replace(',','.')) || 0;
+  return parseArgNum(input.value||'0');
 }
 
 async function giftMoney(code,gid){
@@ -937,7 +966,7 @@ async function giftMoney(code,gid){
   // Calcular total aportado
   const donations = (data.moneyDonations||[]).filter(d=>d.giftId===gid);
   const totalDonated = donations.reduce((sum,d)=>sum+(parseFloat(d.amountNum)||0),0);
-  const priceNum = g.price ? parseFloat(g.price.replace(/[^0-9.,]/g,'').replace(',','.')) : 0;
+  const priceNum = g.price ? parseArgNum(g.price) : 0;
   const remaining = priceNum>0 ? Math.max(0, priceNum-totalDonated) : 0;
 
   modal.innerHTML=`<div class="modal">
@@ -1001,6 +1030,7 @@ async function confirmMoneyGift(code,gid){
   const amountNum=amountInput?parseAmount(amountInput):0;
   const symbol=currency==='USD'?'USD $':'$';
   const amountStr=amountNum>0?symbol+amountNum.toLocaleString('es-AR'):'(no especificado)';
+  if(amountNum<=0){alert('Escribí cuánto transferiste.');return;}
   data.moneyDonations.push({
     id:uid(), gifterName:name, giftName:g.name,
     giftId:gid, amount:amountStr, amountNum:amountNum, timestamp:Date.now()
@@ -1477,11 +1507,11 @@ function showPrivacy(){
   modal.className='modal-bg';
   modal.innerHTML=`<div class="modal" style="max-height:85vh;overflow-y:auto">
     <h3 style="margin:0 0 4px">📄 Términos de uso y Privacidad</h3>
-    <p style="font-size:.72rem;color:var(--muted);margin:0 0 14px">Regálame · Versión vigente: agosto 2025</p>
+    <p style="font-size:.72rem;color:var(--muted);margin:0 0 14px">elregalo.com.ar · Versión vigente: agosto 2025</p>
 
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">1. Información general</p>
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
-      Regálame es una aplicación web gratuita creada por particulares (Agus y Rodo) para
+      elregalo.com.ar es una aplicación web gratuita creada por particulares (Agus y Rodo) para
       coordinar listas de regalos entre personas. No es una empresa ni un servicio comercial.
       El uso de la app es completamente voluntario y gratuito.
     </p>
@@ -1505,13 +1535,13 @@ function showPrivacy(){
       No se usan para publicidad ni para perfilar a los usuarios.<br><br>
       <b>Las direcciones postales NO se almacenan en la app.</b> Si un invitado solicita
       una dirección de envío, el organizador la comparte directamente por fuera de la aplicación
-      (WhatsApp, teléfono, etc.). Regálame no interviene en ese intercambio.
+      (WhatsApp, teléfono, etc.). elregalo.com.ar no interviene en ese intercambio.
     </p>
 
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">4. Responsabilidad del usuario</p>
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
       El organizador de la lista es el único responsable de decidir si comparte su dirección
-      postal u otros datos sensibles con los invitados. Regálame actúa como intermediario técnico
+      postal u otros datos sensibles con los invitados. elregalo.com.ar actúa como intermediario técnico
       y <b>no se hace responsable del uso que terceros hagan de esa información</b> una vez compartida
       fuera de la aplicación.<br><br>
       El usuario declara que los datos que ingresa son propios o que cuenta con el consentimiento
@@ -1529,7 +1559,7 @@ function showPrivacy(){
 
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">6. Limitación de responsabilidad</p>
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
-      Regálame se provee "tal como está", sin garantías de disponibilidad continua. Los creadores
+      elregalo.com.ar se provee "tal como está", sin garantías de disponibilidad continua. Los creadores
       no se responsabilizan por pérdida de datos, interrupciones del servicio ni por daños derivados
       del uso de la aplicación. Al usar la app, el usuario acepta estas condiciones.
     </p>
