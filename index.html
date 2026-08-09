@@ -484,7 +484,7 @@ async function joinList(){
 let _ownerStep = 1;
 
 function ownerStepContent(data, code, guestLink, step){
-  const STEPS = ['🎁 Mis regalos', '⚙️ Mis datos', '🚀 Compartir'];
+  const STEPS = ['⚙️ Configuración', '🎁 Lista de regalos', '🚀 Compartir'];
 
   // Indicador de pasos
   const stepBar = `
@@ -500,6 +500,40 @@ function ownerStepContent(data, code, guestLink, step){
     </div>`;
 
   if(step===1) return stepBar + `
+    <div class="card">
+      <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá tu alias de Mercado Pago, CBU o CVU.</p>
+      ${data.alias ? `
+        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
+          ${data.aliasTitular?`<p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">${esc(data.aliasTitular)}</p>`:''}
+          <p style="font-size:.95rem;font-weight:700;letter-spacing:1px;margin:0">💳 ${esc(data.alias)}</p>
+        </div>
+        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:8px">Copiar alias</button>` :
+        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 8px">No cargaste alias todavía.</p>'}
+      <label>Nombre completo del titular</label>
+      <input id="aliasTitular" placeholder="Ej: María García" value="${esc(data.aliasTitular||'')}">
+      <label>Alias / CBU / CVU</label>
+      <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
+      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar</button>
+    </div>
+    <div class="card" style="background:#f9f4e8;border-color:var(--line)">
+      <h3 style="margin:0 0 6px">📦 Envío físico</h3>
+      <p style="font-size:.82rem;color:#555;line-height:1.6;margin:0">
+        Los invitados que quieran enviarte el regalo físicamente pueden solicitarte
+        la dirección desde la app.<br><br>
+        Cuando te llegue una solicitud, la vas a ver en el <b>Paso 1 → Mis regalos</b>
+        con el nombre y contacto de quien pide. Vos les respondés directamente
+        por WhatsApp, teléfono o como prefieras.<br><br>
+        <b>La dirección nunca se guarda en la app</b> — la compartís vos cuando
+        quieras y con quien quieras.
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="flex:1;padding:14px">← Atrás</button>
+      <button data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="flex:2;padding:14px;font-size:1rem">Siguiente → Lista de regalos</button>
+    </div>`;
+
+  if(step===2) return stepBar + `
     ${moneyDonationsSection(data)}
     ${addrRequestsSection(data,code)}
     <div class="card">
@@ -531,40 +565,6 @@ function ownerStepContent(data, code, guestLink, step){
     <button data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;font-size:1rem;margin-top:4px">
       Siguiente → Mis datos de contacto
     </button>`;
-
-  if(step===2) return stepBar + `
-    <div class="card">
-      <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá tu alias de Mercado Pago, CBU o CVU.</p>
-      ${data.alias ? `
-        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
-          ${data.aliasTitular?`<p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">${esc(data.aliasTitular)}</p>`:''}
-          <p style="font-size:.95rem;font-weight:700;letter-spacing:1px;margin:0">💳 ${esc(data.alias)}</p>
-        </div>
-        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:8px">Copiar alias</button>` :
-        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 8px">No cargaste alias todavía.</p>'}
-      <label>Nombre completo del titular</label>
-      <input id="aliasTitular" placeholder="Ej: María García" value="${esc(data.aliasTitular||'')}">
-      <label>Alias / CBU / CVU</label>
-      <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
-      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar</button>
-    </div>
-    <div class="card" style="background:#f9f4e8;border-color:var(--line)">
-      <h3 style="margin:0 0 6px">📦 Envío físico</h3>
-      <p style="font-size:.82rem;color:#555;line-height:1.6;margin:0">
-        Los invitados que quieran enviarte el regalo físicamente pueden solicitarte
-        la dirección desde la app.<br><br>
-        Cuando te llegue una solicitud, la vas a ver en el <b>Paso 1 → Mis regalos</b>
-        con el nombre y contacto de quien pide. Vos les respondés directamente
-        por WhatsApp, teléfono o como prefieras.<br><br>
-        <b>La dirección nunca se guarda en la app</b> — la compartís vos cuando
-        quieras y con quien quieras.
-      </p>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Atrás</button>
-      <button data-a="ownerStep" data-x="3" data-y="${esc(code)}" style="flex:2;padding:14px;font-size:1rem">Siguiente → Compartir</button>
-    </div>`;
 
   if(step===3) return stepBar + `
     <div class="card">
@@ -601,7 +601,7 @@ function ownerStepContent(data, code, guestLink, step){
         ⋯ Más opciones
       </button>
     </div>
-    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;margin-top:4px">← Atrás</button>`;
+    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;margin-top:4px">← Atrás a la lista</button>`;
 
   return '';
 }
