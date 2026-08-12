@@ -2,20 +2,30 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>elregalo.com.ar</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
 <style>
 :root{
+  color-scheme: light only;
   --bg:#f8f8f6;--surface:#ffffff;--ink:#1a1a1a;--ink2:#555;
   --accent:#2d6a4f;--accent2:#1b4332;--accent-light:#d8f3dc;
   --line:#e5e5e3;--muted:#888;--warn:#e76f51;--warn-dark:#c1440e;
   --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.07);
 }
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#f8f8f6!important;--surface:#ffffff!important;--ink:#1a1a1a!important;
+    --accent:#2d6a4f!important;--accent-light:#d8f3dc!important;
+  }
+  html,body{background:#f8f8f6!important;color:#1a1a1a!important;}
+}
 *{box-sizing:border-box;}
 html,body{height:100%;}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:var(--bg);color:var(--ink);line-height:1.5;overflow-y:auto;}
+  background:#f8f8f6;background:var(--bg);color:#1a1a1a;color:var(--ink);line-height:1.5;overflow-y:auto;}
 .wrap{max-width:560px;margin:0 auto;padding:24px 16px 90px;}
 .app-logo{text-align:center;margin-bottom:20px;}
 .app-logo .logo-text{font-size:2rem;font-weight:800;color:var(--accent);letter-spacing:-.02em;}
@@ -79,11 +89,46 @@ label{font-size:.78rem;font-weight:600;color:var(--ink2);display:block;margin-bo
   border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:600;margin-bottom:6px;}
 footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line-height:1.8;}
 .privacy-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:.7rem;}
+.hero-section{background:#1d5c40;padding:32px 20px 24px;text-align:center;border-radius:12px 12px 0 0;}
+.hero-logo-txt{font-size:.82rem;font-weight:400;color:rgba(255,255,255,.5);letter-spacing:.03em;margin-bottom:18px}
+.hero-gift-icon{font-size:3.2rem;margin-bottom:14px}
+.hero-title{font-size:1.45rem;font-weight:700;color:#fff;line-height:1.3;margin:0 0 8px}
+.hero-sub{font-size:.85rem;color:rgba(255,255,255,.75);line-height:1.6;margin:0 0 22px}
+.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+.hero-badge{font-size:.75rem;padding:4px 12px;border-radius:20px;background:rgba(0,168,107,.2);color:#6ee8b8;border:1px solid rgba(0,200,120,.3)}
+.hero-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:0;padding:0 0 4px}
+.hero-btn-main{background:#00a86b;color:#fff;border:none;border-radius:10px;padding:14px;font-size:.92rem;font-weight:600;cursor:pointer;width:100%}
+.hero-btn-sec{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:12px;font-size:.85rem;cursor:pointer;width:100%}
+.trust-strip{background:#1d5c40;display:grid;grid-template-columns:repeat(3,1fr);padding:16px 12px 22px;border-radius:0 0 12px 12px;margin-bottom:4px}
+.trust-item-h{text-align:center;padding:4px}
+.trust-ico-h{font-size:1.3rem;margin-bottom:3px}
+.trust-lbl-h{font-size:.65rem;color:rgba(255,255,255,.6);line-height:1.3}
+.home-body{padding:20px 0 16px;}
+.home-steps-title{font-size:.82rem;font-weight:600;color:#4a6e5a;text-align:center;margin:0 0 12px}
+.home-steps{display:flex;flex-direction:column;gap:8px}
+.home-step{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.85);border:1px solid #d0ddd5;border-radius:10px;padding:12px}
+.home-step-n{width:26px;height:26px;border-radius:50%;background:#00a86b;color:#fff;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.home-step-h{font-size:.85rem;font-weight:600;color:#1a3d28;margin:0 0 2px}
+.home-step-p{font-size:.75rem;color:#5a7a68;line-height:1.4;margin:0}
+.home-divider{height:1px;background:#d0ddd5;margin:16px 0}
+.home-footer{text-align:center;padding-bottom:4px}
+.home-footer-brand{font-size:.72rem;color:#4a6e5a;margin-bottom:2px}
+.home-footer-made{font-size:.68rem;color:#8aaa98;margin-bottom:10px}
+.home-footer-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.home-footer-link{font-size:.65rem;color:#4a9068;text-decoration:underline;cursor:pointer}
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
 </head>
 <body>
 <div class="wrap" id="app">Cargando...</div>
+<noscript>
+  <div style="max-width:500px;margin:60px auto;padding:24px;font-family:-apple-system,sans-serif;text-align:center;background:#f0f7f0;border-radius:16px;border:2px solid #2d6a4f">
+    <div style="font-size:2.5rem;margin-bottom:12px">🎁</div>
+    <h2 style="color:#1a3d28;margin:0 0 12px">elregalo.com.ar</h2>
+    <p style="color:#555;margin:0 0 16px">Para usar la app, abrí este archivo en <b>Safari</b>.</p>
+    <p style="color:#888;font-size:.85rem">Si estás en iPhone: tocá el ícono de compartir y elegí "Abrir en Safari".</p>
+  </div>
+</noscript>
 <script>
 // ── EMAILJS (API REST directa, sin SDK) ──
 const EJS_SERVICE  = 'service_kn3y6vo';
@@ -132,11 +177,25 @@ const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-T
 function lsGet(key){ try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;} }
 function lsSet(key,val){ try{if(val===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(val));}catch(e){} }
 
-const LIST_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+const LIST_DURATION_MS  = 30 * 24 * 60 * 60 * 1000; // 30 días activos
+const LIST_GRACE_MS    =  7 * 24 * 60 * 60 * 1000; // 7 días de gracia post-evento
+const LIST_TOTAL_MS    = LIST_DURATION_MS + LIST_GRACE_MS; // 37 días total
 
+function getEventEnd(data){
+  if(data&&data.eventDate) return data.eventDate;
+  return data&&data.created ? data.created+LIST_DURATION_MS : Date.now();
+}
+function isEventPast(data){
+  return Date.now() > getEventEnd(data);
+}
+function isInGrace(data){
+  const end=getEventEnd(data);
+  return Date.now()>end && Date.now()<end+(7*24*60*60*1000);
+}
 function isExpired(data){
-  if(!data||!data.created) return false;
-  return (Date.now() - data.created) > LIST_DURATION_MS;
+  if(!data) return false;
+  const end=getEventEnd(data);
+  return Date.now() > end+(7*24*60*60*1000);
 }
 
 async function sGet(key){
@@ -214,6 +273,15 @@ function dispatch(a,x,y){
     'home':()=>renderHome(),
     'showPrivacy':()=>showPrivacy(),
     'showContact':()=>showContact(),
+    'showFAQ':()=>showFAQ(),
+    'revealGivers':async()=>{
+      if(!confirm('¿Confirmas que el evento ya pasó y querés ver quién regaló cada cosa?\n\nEsta acción no se puede deshacer.')) return;
+      const data=await sGet('ev:'+x);
+      if(!data) return;
+      data.revealed=true;
+      await sSet('ev:'+x,data);
+      renderOwner(x);
+    },
     'showHowTo':()=>showHowTo(),
     'setCurrency':()=>selectCurrency(x),
     'goCreate':()=>renderCreate(),
@@ -223,9 +291,10 @@ function dispatch(a,x,y){
       if(btn)btn.classList.add('active');
       const inp=document.getElementById('occType');
       if(inp)inp.value=x;
-      const lbl=document.getElementById('ownerLabel');
       const oData=OCCASIONS[x]||OCCASIONS['cumple'];
-      if(lbl)lbl.textContent='Nombre de '+oData.person;
+      const lbl=document.getElementById('ownerLabel');
+      if(lbl)lbl.textContent=oData.question;
+      autoFillTitle();
     },
     'goJoin':()=>renderJoin(),
     'goLastList':()=>{ const c=lsGet('lastOwnerCode'); if(c){setHash({o:c});renderOwner(c);} },
@@ -238,6 +307,39 @@ function dispatch(a,x,y){
     'saveAddress':()=>saveAddress(x,y),
     'copyAddr':()=>copyAddr(x,y),
     'copyAddrForReq':()=>copyAddr(x,y),
+    'confirmGoToOwner':()=>{
+      if(confirm('¿Ya guardaste tu código y contraseña?\n\n🔑 Código: '+x+'\n🔒 Contraseña: '+y+'\n\nSin estos datos no podrás volver a editar tu lista.\n\n¿Continuar?')){
+        setHash({o:x}); renderOwner(x);
+      }
+    },
+    'setDelivery':()=>{
+      window._deliveryInHand=(x==='hand');
+      const btnH=document.getElementById('btnDelivHand');
+      const btnS=document.getElementById('btnDelivShip');
+      const errEl=document.getElementById('deliveryError');
+      if(errEl) errEl.style.display='none';
+      if(btnH&&btnS){
+        btnH.style.background=x==='hand'?'var(--accent)':'transparent';
+        btnH.style.color=x==='hand'?'#fff':'var(--accent)';
+        btnH.style.borderColor='var(--accent)';
+        btnS.style.background=x==='ship'?'var(--accent)':'transparent';
+        btnS.style.color=x==='ship'?'#fff':'var(--accent)';
+        btnS.style.borderColor='var(--accent)';
+      }
+    },
+    'chooseCompleteGift':()=>{
+      const cs=document.getElementById('pickChoiceSection');
+      const ss=document.getElementById('pickStoreSection');
+      if(cs) cs.style.display='none';
+      if(ss) ss.style.display='block';
+    },
+    'chooseMoneyGift':()=>{
+      document.querySelectorAll('.modal-bg').forEach(m=>m.remove());
+      giftMoney(x,y);
+    },
+    'confirmExit':()=>{
+      if(confirm('¿Querés salir del panel?\n\nRecordá tus datos para volver:\n🔑 Código: '+x+'\n\nPodés volver ingresando el código en elregalo.com.ar\n\n¿Salir?')) renderHome();
+    },
     'deleteList':()=>deleteList(x),
     'createList':()=>createList(),
     'joinList':()=>joinList(),
@@ -285,196 +387,248 @@ function copyText(t){
 
 // ── OCASIÓN ──
 const OCCASIONS={
-  'cumple':  {icon:'🎂', label:'Cumpleaños',   person:'el/la cumpleañero/a', verb:'cumple'},
-  'casamiento':{icon:'💍',label:'Casamiento',  person:'los novios',          verb:'casamiento'},
-  'baby':    {icon:'👶', label:'Baby shower',  person:'el/la bebé',          verb:'baby shower'},
-  'graduacion':{icon:'🎓',label:'Graduación', person:'el/la graduado/a',     verb:'graduación'},
-  'mudanza': {icon:'🏠', label:'Mudanza',      person:'los que se mudan',    verb:'mudanza'},
-  'otro':    {icon:'🎁', label:'Otro evento',  person:'el/la agasajado/a',   verb:'evento'},
+  'cumple':    {icon:'🎂', label:'Cumpleaños', prefix:'Cumple de',      question:'¿Nombre del/la cumpleañero/a?', person:'el/la cumpleañero/a', verb:'cumple',    deliveryLabel:'al cumple'},
+  'casamiento':{icon:'💍', label:'Casamiento', prefix:'Boda de',        question:'¿Nombre de los novios?',        person:'los novios',          verb:'casamiento', deliveryLabel:'a la boda'},
+  'baby':      {icon:'👶', label:'Baby shower',prefix:'Baby shower de', question:'¿Nombre de la mamá o del bebé?',person:'el/la bebé',          verb:'baby shower',deliveryLabel:'al baby shower'},
+  'quince':    {icon:'👑', label:'15 años',    prefix:'Los 15 de',      question:'¿Nombre de la quinceañera?',    person:'la quinceañera',      verb:'quince',    deliveryLabel:'a los 15'},
+  'graduacion':{icon:'🎓', label:'Graduación', prefix:'Graduación de',  question:'¿Nombre del/la graduado/a?',    person:'el/la graduado/a',    verb:'graduación', deliveryLabel:'a la graduación'},
+  'mudanza':   {icon:'🏠', label:'Mudanza',    prefix:'Mudanza de',     question:'¿Nombre de los que se mudan?',  person:'los que se mudan',    verb:'mudanza',   deliveryLabel:'a la mudanza'},
+  'otro':      {icon:'🎁', label:'Otro evento',prefix:'Celebración de', question:'¿Quién es el/la festejado/a?',  person:'el/la agasajado/a',   verb:'evento',    deliveryLabel:'al evento'},
 };
 function occ(data){ return OCCASIONS[data.occasion]||OCCASIONS['cumple']; }
 
+const DIGITAL_KEYWORDS=['digital','juego','game','gift card','tarjeta regalo','suscripcion',
+  'subscripcion','netflix','spotify','steam','amazon','google play','app store','itunes',
+  'descarga','download','streaming','ebook','kindle','audible','youtube','disney','hbo',
+  'paramount','apple tv','playstation','xbox','nintendo','codigo','voucher','cupon'];
+function isDigitalGift(name){
+  if(!name) return false;
+  const l=name.toLowerCase();
+  return DIGITAL_KEYWORDS.some(k=>l.includes(k));
+}
+
+function autoFillTitle(){
+  const nameEl=document.getElementById('ownerName');
+  const titleEl=document.getElementById('listTitle');
+  const occEl=document.getElementById('occType');
+  const preview=document.getElementById('titlePreview');
+  const previewText=document.getElementById('titlePreviewText');
+  if(!nameEl||!titleEl||!occEl) return;
+  const oData=OCCASIONS[occEl.value]||OCCASIONS['cumple'];
+  const name=nameEl.value.trim();
+  const generated=name ? oData.prefix+' '+name : '';
+  titleEl.value=generated;
+  if(preview&&previewText){
+    if(generated){
+      previewText.textContent=generated;
+      preview.style.display='block';
+    } else {
+      preview.style.display='none';
+    }
+  }
+}
+
 function renderComingSoon(){
+  document.body.style.margin='0';
+  document.body.style.padding='0';
+  document.body.style.background='#1d5c40';
+  document.body.style.fontFamily="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
   document.body.innerHTML=`
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg,#d8f3dc 0%,#f0f7f0 50%,#fff3cd 100%);
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px">
-      <div style="text-align:center;max-width:400px">
-        <div style="font-size:4rem;margin-bottom:16px">🎁</div>
-        <h1 style="font-size:2rem;font-weight:800;color:#1b4332;margin:0 0 8px">elregalo.com.ar</h1>
-        <p style="font-size:1.1rem;color:#2d6a4f;font-style:italic;margin:0 0 24px;font-weight:600">
-          Creá la lista para el regalo que tanto querés.
-        </p>
-        <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.08);margin-bottom:24px">
-          <div style="font-size:1.5rem;font-weight:800;color:#1b4332;margin-bottom:8px">⏳ Próximamente</div>
-          <p style="color:#555;font-size:.95rem;line-height:1.6;margin:0">
-            Estamos preparando algo especial para vos.<br>
-            Muy pronto podrás armar tu lista de regalos y coordinar con tus amigos para que nadie compre lo mismo dos veces.
-          </p>
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px;background:#1d5c40">
+      <div style="font-size:64px;margin-bottom:20px">🎁</div>
+      <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:8px">elregalo.com.ar</div>
+      <div style="font-size:15px;color:rgba(255,255,255,.55);letter-spacing:.04em;margin-bottom:40px">Próximamente</div>
+      <div style="width:60px;height:2px;background:rgba(255,255,255,.2);margin:0 auto 40px"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:340px;width:100%">
+        <div style="text-align:center">
+          <div style="font-size:24px;margin-bottom:6px">🌎</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.4">Para todo el mundo</div>
         </div>
-        <p style="font-size:.78rem;color:#888;margin:0">elregalo.com.ar · Gratis<br>Hecho en Argentina por Agus - Rodo</p>
+        <div style="text-align:center">
+          <div style="font-size:24px;margin-bottom:6px">⚡</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.4">En 2 minutos</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:24px;margin-bottom:6px">🇦🇷</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.4">Hecho en Argentina</div>
+        </div>
       </div>
+      <div style="margin-top:56px;font-size:11px;color:rgba(255,255,255,.55);margin-bottom:4px">Hecho en Argentina por Agus - Rodo</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.4)">© 2026 elregalo.com.ar · Todos los derechos reservados</div>
     </div>`;
 }
 
+
 function renderHome(){
   setHash({});
-  const lastCode = lsGet('lastOwnerCode');
-  const lastTitle = lsGet('lastOwnerTitle');
-  const lastInfo = lastCode ? `
-    <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
-      <p style="margin:0 0 4px;font-size:.8rem;font-weight:700;color:var(--accent)">📋 Tenés una lista guardada:</p>
-      <p style="margin:0 0 10px;font-size:.95rem;font-weight:600">${esc(lastTitle||lastCode)}</p>
-      <button data-a="goLastList" style="background:var(--accent);width:100%;margin-bottom:8px">Volver a esa lista</button>
-      <button class="ghost sm danger" data-a="clearLastList" style="width:100%;color:#c0392b;border-color:#c0392b">
-        ✕ No es mi lista — borrar y empezar de cero
-      </button>
-    </div>` : '';
+  const lastCode=lsGet('lastOwnerCode');
+  const lastTitle=lsGet('lastOwnerTitle');
+  const lastInfo=lastCode?`
+    <div class="card" style="background:#f0f9f4;border-color:#c8e6d4;margin-bottom:12px">
+      <p style="margin:0 0 6px;font-size:.82rem;color:var(--muted)">Tu última lista:</p>
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:600;color:#1a3d28">${esc(lastTitle||lastCode)}</p>
+      <div style="display:flex;gap:8px">
+        <button data-a="goLastList" style="flex:1">Ir a mi lista</button>
+        <button class="ghost sm" data-a="clearLastList">✕</button>
+      </div>
+    </div>`:'';
   render(`
-    <div class="app-logo">
-      <div class="logo-text" style="font-size:1.6rem">🎁 elregalo.com.ar</div>
-      <div class="logo-sub" style="font-size:.95rem;color:#2d6a4f;font-style:italic;margin-top:6px;font-weight:600">
-        Creá la lista para el regalo que tanto querés.
+    <div class="hero-section">
+      <div class="hero-logo-txt">elregalo.com.ar</div>
+      <div class="hero-gift-icon">🎁</div>
+      <h1 class="hero-title">Coordiná tu lista de regalos</h1>
+      <p class="hero-sub">Creá tu lista, compartila con tus invitados<br>y sorprendete el día del evento.</p>
+      <div class="hero-badges">
+        <span class="hero-badge">✓ Gratis</span>
+        <span class="hero-badge">✓ Sin registro</span>
+        <span class="hero-badge">✓ Sin spoilers</span>
+      </div>
+      <div class="hero-btns">
+        <button class="hero-btn-main" data-a="goCreate">Crear mi lista →</button>
+        <button class="hero-btn-sec" data-a="goJoin">Ya tengo un código</button>
       </div>
     </div>
-    ${lastInfo}
-    <div class="card">
-      <div class="home-btns">
-        <button data-a="goJoin">Tengo un código — ver regalos</button>
-        <button class="ghost" data-a="goCreate">Crear lista nueva</button>
+    <div class="trust-strip">
+      <div class="trust-item-h"><div class="trust-ico-h">🌎</div><div class="trust-lbl-h">Para todo el mundo</div></div>
+      <div class="trust-item-h"><div class="trust-ico-h">⚡</div><div class="trust-lbl-h">En 2 minutos</div></div>
+      <div class="trust-item-h"><div class="trust-ico-h">🇦🇷</div><div class="trust-lbl-h">Hecho en Argentina</div></div>
+    </div>
+    <div class="home-body">
+      ${lastInfo}
+      <p class="home-steps-title">¿Cómo funciona?</p>
+      <div class="home-steps">
+        <div class="home-step">
+          <div class="home-step-n">1</div>
+          <div>
+            <p class="home-step-h">Creás tu lista</p>
+            <p class="home-step-p">Agregá los regalos que realmente querés recibir.</p>
+          </div>
+        </div>
+        <div class="home-step">
+          <div class="home-step-n">2</div>
+          <div>
+            <p class="home-step-h">Compartís el código</p>
+            <p class="home-step-p">Tus invitados entran y eligen sin que vos sepas.</p>
+          </div>
+        </div>
+        <div class="home-step">
+          <div class="home-step-n">3</div>
+          <div>
+            <p class="home-step-h">Te sorprendés</p>
+            <p class="home-step-p">Nadie sabe quién eligió qué. La sorpresa se mantiene.</p>
+          </div>
+        </div>
+      </div>
+      <div class="home-divider"></div>
+      <div class="home-footer">
+        <div class="home-footer-brand">elregalo.com.ar · Gratis</div>
+        <div class="home-footer-made">Hecho en Argentina por Agus - Rodo</div>
+        <div class="home-footer-links">
+          <span class="home-footer-link" data-a="showFAQ">❓ Preguntas frecuentes</span>
+          <span class="home-footer-link" data-a="showHowTo">📖 Cómo se usa</span>
+          <span class="home-footer-link" data-a="showPrivacy">📄 Términos y condiciones</span>
+          <span class="home-footer-link" data-a="showContact">✉️ Contacto</span>
+        </div>
+        <div style="margin-top:10px;font-size:.62rem;color:#aabcb2">© 2026 elregalo.com.ar · Todos los derechos reservados</div>
       </div>
     </div>
-    <footer>elregalo.com.ar · Gratis<br>Hecho en Argentina por Agus - Rodo</footer>
   `);
 }
-
 function renderCreate(){
-  setHash({});  // limpiar hash para evitar que cargue lista vieja
+  setHash({});
+  const occOptions=Object.entries(OCCASIONS).map(([k,v])=>
+    `<option value="${k}">${v.icon} ${v.label}</option>`).join('');
+  const today=new Date();
+  const maxDate=new Date(Date.now()+30*24*60*60*1000);
+  const fmt=d=>d.toISOString().split('T')[0];
   render(`
-    <h1>elregalo.com.ar 🎁</h1>
-
+    <h1>🎁 Crear lista de regalos</h1>
+    <p class="sub">Completá los datos para armar tu lista.</p>
     <div class="card">
-      <label>Tipo de evento</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="occGrid">
-        ${Object.entries(OCCASIONS).map(([k,v])=>`
-          <button type="button" class="occ-btn ghost sm${k==='cumple'?' active':''}"
-            data-a="setOcc" data-x="${k}"
-            style="padding:10px 4px;text-align:center;border-radius:10px;font-size:.8rem">
-            ${v.icon}<br><span style="font-size:.72rem">${v.label}</span>
-          </button>`).join('')}
+      <label>¿Para quién es la lista?</label>
+      <input id="ownerName" placeholder="Ej: Valentina" autocomplete="off" oninput="autoFillTitle()">
+      <label>Ocasión</label>
+      <select id="occType" onchange="autoFillTitle()">
+        ${occOptions}
+      </select>
+      <div id="titlePreview" style="display:none;background:#f0f9f4;border:1px solid #c8e6d4;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.82rem;color:#1a3d28">
+        📋 Tu lista se va a llamar: <b id="titlePreviewText"></b>
       </div>
-      <input type="hidden" id="occType" value="cumple">
-      <label id="ownerLabel">¿Quién festeja?</label>
-      <input id="ownerName" placeholder="Ej: Martín" autocomplete="off">
-      <label>Título de la lista <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-      <input id="listTitle" placeholder="Ej: Cumple de Martín" autocomplete="off">
-      <input id="ownerEmail" type="hidden" value="">
-      <div style="background:#fff3cd;border:1px solid #f0c040;border-radius:10px;padding:12px;margin-bottom:12px;font-size:.82rem;color:#7a5c00;line-height:1.6">
-        ⏳ <b>Duración de la lista: 30 días.</b><br>
-        Después de un mes la lista se borra automáticamente. Si el evento es antes, podés borrarla vos desde tu panel cuando quieras.
-      </div>
-      <button data-a="createList" style="width:100%;padding:14px;font-size:1rem">
-        Crear lista ✓
-      </button>
-      <div style="margin-top:8px"><button class="ghost sm" data-a="home" style="width:100%">Volver</button></div>
+      <input type="hidden" id="listTitle" value="">
+      <label>📅 Fecha del evento <span style="font-weight:400;color:var(--muted)">(recomendado)</span></label>
+      <input type="date" id="eventDate" min="${fmt(today)}" max="${fmt(maxDate)}" style="margin-bottom:6px">
+      <p style="font-size:.75rem;color:var(--muted);margin:-2px 0 12px;line-height:1.4">
+        Después del evento tenés 7 días para ver quién te regaló cada cosa.
+      </p>
+      <label>Tu email <span style="font-weight:400;color:var(--muted)">(opcional — para notificaciones)</span></label>
+      <input id="ownerEmail" type="email" placeholder="tu@email.com" autocomplete="email">
+      <label>Contraseña de tu lista <span style="font-weight:400;color:var(--muted)">(para que solo vos puedas editarla)</span></label>
+      <input id="ownerPass" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password">
     </div>
+    <button data-a="createList" style="width:100%;padding:16px;font-size:1rem;font-weight:600">
+      Crear lista ✓
+    </button>
+    <button class="ghost" data-a="home" style="width:100%;margin-top:8px;padding:12px">← Volver</button>
   `);
-}
-
-function genPass(){
-  // Genera contraseña aleatoria simple: 3 palabras cortas + número
-  const words=['sol','mar','rio','luz','voz','paz','flor','luna','cielo','verde','rosa','azul','rojo','nube'];
-  const w1=words[Math.floor(Math.random()*words.length)];
-  const w2=words[Math.floor(Math.random()*words.length)];
-  const n=Math.floor(Math.random()*90)+10;
-  return w1+'-'+w2+'-'+n;
 }
 
 async function createList(){
-  const owner=(document.getElementById('ownerName')||{}).value||'';
-  const title=(document.getElementById('listTitle')||{}).value||'';
-  if(!owner.trim()){alert('Escribí el nombre de quien festeja');return;}
-  const email=((document.getElementById('ownerEmail')||{}).value||'').trim();
-
   const btn=document.querySelector('[data-a="createList"]');
   if(btn){btn.disabled=true;btn.textContent='Creando...';}
-  const pass=genPass();
-  const code=genCode();
-  const occType=(document.getElementById('occType')||{}).value||'cumple';
+  const nameEl=document.getElementById('ownerName');
+  const owner=(nameEl&&nameEl.value||'').trim();
+  if(!owner){
+    alert('Escribí el nombre de la persona que va a recibir los regalos.');
+    if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
+    return;
+  }
+  const occEl=document.getElementById('occType');
+  const occType=occEl?occEl.value:'cumple';
   const occData=OCCASIONS[occType]||OCCASIONS['cumple'];
-  const data={owner:owner.trim(),occasion:occType,title:title.trim()||occData.label+' de '+owner.trim(),ownerEmail:email,ownerPass:pass,gifts:[],created:Date.now()};
-  await sSet('ev:'+code, data);
-  lsSet('lastOwnerCode', code);
-  lsSet('lastOwnerTitle', data.title);
-
-  // Bloquear hashchange y mostrar pantalla de confirmación
-  _showingCreated = true;
-  renderCreated(code, data, pass);
-}
-
-function renderCreated(code, data, pass){
-  const BASE_URL='https://elregalo.com.ar/';
-  const guestLink=BASE_URL+'#g='+code;
-  render(`
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:2.5rem">🎉</div>
-      <h1 style="margin:8px 0 4px">¡Lista creada!</h1>
-      <p class="sub">${esc(data.title)}</p>
-    </div>
-
-    <div class="card" style="border:2px solid #e74c3c;background:#fff8f8">
-      <p style="margin:0 0 12px;font-size:.95rem;font-weight:700;color:#c0392b;text-align:center">
-        ⚠️ IMPORTANTE — Anotá estos datos ahora
-      </p>
-      <p style="font-size:.8rem;color:#7a3025;margin:0 0 14px;line-height:1.6;text-align:center">
-        Los necesitás para volver a entrar a tu lista y editarla.<br>
-        <b>Si los perdés, no podrás modificar la lista.</b><br>
-        Copiálos y guardalos en tu celular, notas, o donde quieras.
-      </p>
-
-      <label>Tu código de lista</label>
-      <div class="codebox" style="letter-spacing:6px;font-size:1.4rem;margin-bottom:6px">${esc(code)}</div>
-      <button data-a="copyText" data-x="${esc(code)}" style="width:100%;margin-bottom:14px;background:#e74c3c">
-        📋 Copiar código
-      </button>
-
-      <label>Tu contraseña de organizador</label>
-      <div class="codebox" style="letter-spacing:2px;font-size:1.1rem;color:#7a3025;border-color:#e74c3c;margin-bottom:6px">${esc(pass)}</div>
-      <button data-a="copyText" data-x="${esc(pass)}" style="width:100%;margin-bottom:14px;background:#e74c3c">
-        📋 Copiar contraseña
-      </button>
-
-      <button data-a="copyText" data-x="Código: ${esc(code)}&#10;Contraseña: ${esc(pass)}"
-        style="width:100%;background:#7a3025">
-        📋 Copiar los dos juntos
-      </button>
-    </div>
-
-    <div class="card" style="border-color:var(--accent)">
-      <p style="margin:0 0 8px;font-size:.88rem;font-weight:700;color:var(--accent)">
-        🔗 Link para compartir con tus amigos
-      </p>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Mandáselo a quienes querés que te regalen algo. Ellos NO necesitan contraseña.</p>
-      <div class="linkbox">${esc(guestLink)}</div>
-      <button data-a="copyText" data-x="${esc(guestLink)}" style="width:100%;margin:8px 0">
-        📋 Copiar link para amigos
-      </button>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-          style="background:#25D366;border:none;color:#fff;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
-          💬 WhatsApp
-        </button>
-        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
-          style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border:none;color:#fff;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
-          📸 Instagram
-        </button>
-      </div>
-    </div>
-
-    <button data-a="goToOwner" data-x="${esc(code)}" style="width:100%;padding:14px;font-size:1rem">
-      Ir a mi lista →
-    </button>
-  `);
+  const titleEl=document.getElementById('listTitle');
+  const title=(titleEl&&titleEl.value.trim())||(occData.prefix+' '+owner);
+  const emailEl=document.getElementById('ownerEmail');
+  const email=(emailEl&&emailEl.value||'').trim();
+  const passEl=document.getElementById('ownerPass');
+  const pass=(passEl&&passEl.value||'').trim();
+  if(pass&&pass.length<4){
+    alert('La contraseña tiene que tener al menos 4 caracteres.');
+    if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
+    return;
+  }
+  const eventDateEl=document.getElementById('eventDate');
+  const eventDateVal=eventDateEl&&eventDateEl.value?new Date(eventDateEl.value+'T23:59:59').getTime():null;
+  if(eventDateVal){
+    const maxDate=Date.now()+30*24*60*60*1000;
+    const minDate=Date.now()+1*24*60*60*1000;
+    if(eventDateVal<minDate){
+      alert('La fecha del evento tiene que ser a partir de mañana.');
+      if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
+      return;
+    }
+    if(eventDateVal>maxDate){
+      alert('La fecha del evento no puede ser más de 30 días en el futuro.');
+      if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
+      return;
+    }
+  }
+  const code=uid();
+  const data={
+    owner:owner,occasion:occType,title:title,
+    ownerEmail:email,ownerPass:pass,
+    gifts:[],created:Date.now(),
+    eventDate:eventDateVal||null
+  };
+  try{
+    await sSet('ev:'+code,data);
+    lsSet('lastOwnerCode',code);
+    lsSet('lastOwnerTitle',title);
+    lsSet('lastOwnerPass',pass);
+    await renderOwner(code,2);
+  }catch(e){
+    alert('No se pudo crear la lista. Intentá de nuevo.');
+    if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
+  }
 }
 
 function renderJoin(){
@@ -544,7 +698,7 @@ function ownerStepContent(data, code, guestLink, step){
   if(step===1) return stepBar + `
     <div class="card">
       <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá tu alias de Mercado Pago, CBU o CVU.</p>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá el alias de tu banco o billetera virtual, o tu CBU/CVU.</p>
       ${data.alias ? `
         <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
           ${data.aliasTitular?`<p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">${esc(data.aliasTitular)}</p>`:''}
@@ -578,28 +732,33 @@ function ownerStepContent(data, code, guestLink, step){
     ${moneyDonationsSection(data)}
     ${addrRequestsSection(data,code)}
     <div class="card">
-      <h3 style="margin:0 0 8px">Agregar a mi lista de deseos</h3>
+      <h3 style="margin:0 0 4px">Agregar a mi lista de deseos</h3>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 10px">${data.gifts.length}/20 regalos cargados</p>
       <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
         💡 Cuanto más detallés el regalo (marca, modelo, color), más fácil le va a ser a quien lo compre.
       </div>
-      <input id="newName" id="newName" placeholder="Ej: ver sugerencia abajo" onfocus="rotatePlaceholder(this)">
+      <input id="newName" placeholder="Ej: Set de cuchillos alemanes" onfocus="rotatePlaceholder(this)">
       <label>Link del producto online <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
       <input id="newLink" placeholder="https://www.mercadolibre.com.ar/..." 
         oninput="clearTimeout(window._linkTimer);window._linkTimer=setTimeout(()=>handleLinkPaste(),1000)"
         onpaste="setTimeout(()=>handleLinkPaste(),500)">
-      <label>Lugar físico recomendado <span style="font-weight:400;color:var(--muted)">(opcional — ej: Librería Peniel, Av. Corrientes 3200)</span></label>
-      <input id="newPlace" placeholder="Ej: Librería Peniel — Av. Corrientes 3200, CABA" autocomplete="off">
-      <label>Precio estimado <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-      <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off"
-        oninput="formatAmount(this)">
-      <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 10px;line-height:1.4">
-        💡 El precio estimado sirve para que quien quiera pueda regalarte el valor completo
-        o aportar un porcentaje para que puedas comprarlo vos.
-      </p>
+      <div id="priceBlock" style="display:none">
+        <label>Precio estimado <span style="font-weight:400;color:#e74c3c">(*obligatorio con valor estimado)</span></label>
+        <input id="newPrice" placeholder="Ej: $50.000" autocomplete="off"
+          oninput="formatAmount(this)">
+        <p style="font-size:.75rem;color:var(--muted);margin:-6px 0 10px;line-height:1.4">
+          💡 El precio estimado sirve para que los invitados sepan cuánto aportar.
+        </p>
+      </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
         <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
         <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
         <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Regalar el valor estimado</label>
+      </div>
+      <div id="digitalContactBlock" style="display:none;background:#e8f4fd;border:1px solid #aed6f1;border-radius:10px;padding:12px;margin-bottom:12px">
+        <p style="margin:0 0 6px;font-size:.82rem;font-weight:700;color:#1a3d28">📧 ¿A dónde te envían el regalo digital?</p>
+        <p style="margin:0 0 8px;font-size:.75rem;color:var(--muted)">Dejá tu email o WhatsApp para que quien te regale sepa dónde enviártelo. (opcional)</p>
+        <input id="digitalReceiveContact" placeholder="Ej: tu@email.com o +54 11 1234-5678" style="margin:0">
       </div>
       <label>Foto del producto <span style="font-weight:400;color:var(--muted)">(opcional — cámara o galería)</span></label>
       <div style="background:#fafafa;border:1.5px dashed #bbb;border-radius:10px;padding:10px;text-align:center;margin-bottom:10px">
@@ -632,6 +791,14 @@ function ownerStepContent(data, code, guestLink, step){
       <div class="linkbox">${esc(guestLink)}</div>
       <button class="ghost sm" data-a="copyLink" data-x="${esc(guestLink)}" style="width:100%;margin-top:6px">Copiar link</button>
     </div>
+    <div class="card" style="text-align:center">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 QR para el evento</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 12px">Mostralo en el evento — quien no tenga el link lo escanea y entra directo.</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=1a3d28&bgcolor=ffffff&data=${encodeURIComponent(guestLink)}"
+           style="border:3px solid var(--accent);border-radius:12px;width:180px;height:180px;display:block;margin:0 auto 10px"
+           alt="QR de la lista">
+      <p style="font-size:.72rem;color:var(--muted);margin:0">Tocá para guardar la imagen del QR</p>
+    </div>
     <div class="card" style="background:#f0f7f0;border-color:var(--accent)">
       <h3 style="margin:0 0 8px;color:#1b4332">🚀 Compartir la lista</h3>
       <p style="font-size:.8rem;color:var(--muted);margin:0 0 12px">Mandásela a tus amigos para que elijan qué regalarte.</p>
@@ -640,23 +807,11 @@ function ownerStepContent(data, code, guestLink, step){
           style="background:#25D366;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
           💬 WhatsApp
         </button>
-        <button data-a="shareFacebook" data-x="${esc(guestLink)}"
-          style="background:#1877F2;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          📘 Facebook
-        </button>
-        <button data-a="shareX" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-          style="background:#000;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          𝕏 Twitter/X
-        </button>
-        <button data-a="shareInstagram" data-x="${esc(guestLink)}"
-          style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          📸 Instagram
+        <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+          style="background:#fff;border:1px solid var(--line);color:#333;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
+          ⋯ Más opciones
         </button>
       </div>
-      <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-        style="width:100%;background:#fff;border:1px solid var(--line);color:#333;padding:10px;border-radius:8px;font-size:.82rem;cursor:pointer">
-        ⋯ Más opciones
-      </button>
     </div>
     <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;margin-top:4px">← Atrás a la lista</button>`;
 
@@ -668,11 +823,28 @@ async function renderOwner(code, step){
   _ownerStep = step;
   const data=await sGet('ev:'+code);
   if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
-  if(isExpired(data)){render(`<div class="card" style="text-align:center;padding:24px"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><h2 style="margin:0 0 8px;color:var(--accent)">Esta lista expiró</h2><p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">Las listas duran 30 días y se borran automáticamente.</p><button data-a="home">Volver al inicio</button></div>`);return;}
+  if(isExpired(data)){render(`<div class="card" style="text-align:center;padding:24px"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><h2 style="margin:0 0 8px;color:var(--accent)">Esta lista expiró</h2><p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">Las listas duran 37 días y se borran automáticamente.</p><button data-a="home">Volver al inicio</button></div>`);return;}
   const BASE_URL='https://elregalo.com.ar/';
   const guestLink=BASE_URL+'#g='+code;
-  const daysLeft=data.created?Math.max(0,Math.ceil((LIST_DURATION_MS-(Date.now()-data.created))/(24*60*60*1000))):30;
-  const expiryWarning=daysLeft<=5?`
+  const inGrace=isInGrace(data);
+  const eventEnd=getEventEnd(data);
+  const daysLeft=Math.max(0,Math.ceil((eventEnd-Date.now())/(24*60*60*1000)));
+  const graceDaysLeft=Math.max(0,Math.ceil((eventEnd+7*24*60*60*1000-Date.now())/(24*60*60*1000)));
+  const eventDateStr=data.eventDate?new Date(data.eventDate).toLocaleDateString('es-AR',{day:'numeric',month:'long'}):null;
+  const expiryWarning=inGrace?`
+    <div style="background:#e8f5e9;border:2px solid var(--accent);border-radius:12px;padding:14px;margin-bottom:12px">
+      <p style="margin:0 0 8px;font-size:.92rem;font-weight:700;color:#1b4332">🎉 ¡El evento pasó! Período de gracia — ${graceDaysLeft} días restantes</p>
+      <p style="margin:0 0 10px;font-size:.82rem;color:#2d6a4f;line-height:1.5">
+        Ahora podés ver quién te regaló cada cosa para poder agradecerles.<br>
+        <b>La app no guarda contactos</b> — usá los nombres para buscarlos en WhatsApp o Instagram.
+      </p>
+      ${data.revealed?'':
+      `<button data-a="revealGivers" data-x="${esc(code)}"
+        style="width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600">
+        🎁 Ver quién regaló cada cosa
+      </button>`}
+    </div>`:
+    daysLeft<=5?`
     <div style="background:#fbe9e1;border:1px solid #e07050;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.82rem;color:#7a3025">
       ⚠️ Tu lista vence en <b>${daysLeft} día${daysLeft!==1?'s':''}</b>. Después se borra automáticamente.
     </div>`:'';
@@ -680,11 +852,11 @@ async function renderOwner(code, step){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <h1 style="margin:0;font-size:1.3rem">🎁 ${esc(data.title)}</h1>
     </div>
-    <p class="sub" style="margin-bottom:8px">Panel del organizador · ${daysLeft} días restantes</p>
+    <p class="sub" style="margin-bottom:8px">Panel del organizador · ${inGrace?"Período de gracia":eventDateStr?"Evento: "+eventDateStr+" · "+daysLeft+" días restantes":daysLeft+" días restantes"}</p>
     ${expiryWarning}
     ${ownerStepContent(data,code,guestLink,step)}
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="ghost" data-a="home" style="flex:1;padding:12px;font-size:.9rem">🚪 Salir</button>
+      <button class="ghost" data-a="confirmExit" data-x="${esc(code)}" style="flex:1;padding:12px;font-size:.9rem">🚪 Salir</button>
       <button class="ghost" data-a="deleteList" data-x="${esc(code)}"
         style="flex:1;padding:12px;font-size:.9rem;color:#c0392b;border-color:#c0392b">
         🗑️ Borrar lista
@@ -788,18 +960,45 @@ function compressImage(file, maxPx=400, quality=0.65){
 
 async function fetchOGImage(url){
   if(!url) return null;
-  try{
-    // Intentar via allorigins como proxy CORS
-    const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
-    const r=await fetch(proxy,{signal:AbortSignal.timeout(5000)});
-    const j=await r.json();
-    const html=j.contents||'';
-    // Buscar og:image
-    const m=html.match(/<meta[^>]+(?:property=["']og:image["']|name=["']og:image["'])[^>]+content=["']([^"']+)["'][^>]*>/i)
-           ||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i);
-    if(m&&m[1]) return m[1].startsWith('http')?m[1]:null;
+  const proxies=[
+    u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u),
+    u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),
+    u=>'https://corsproxy.io/?'+encodeURIComponent(u),
+  ];
+  const extractOG=(html)=>{
+    // og:image en cualquier orden de atributos
+    const patterns=[
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+name=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']og:image["']/i,
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+    ];
+    for(const p of patterns){
+      const m=html.match(p);
+      if(m&&m[1]&&m[1].startsWith('http')) return m[1];
+    }
     return null;
-  }catch{return null;}
+  };
+  for(const makeProxy of proxies){
+    try{
+      const r=await fetch(makeProxy(url),{signal:AbortSignal.timeout(6000)});
+      if(!r.ok) continue;
+      const ct=r.headers.get('content-type')||'';
+      let html='';
+      if(ct.includes('json')){
+        const j=await r.json();
+        html=j.contents||j.body||'';
+      } else {
+        html=await r.text();
+      }
+      if(!html) continue;
+      const img=extractOG(html);
+      if(img) return img;
+    }catch{continue;}
+  }
+  return null;
 }
 
 async function handleLinkPaste(code){
@@ -849,8 +1048,32 @@ function ownerGiftList(data,code){
         <div style="margin-top:4px">
           ${g.allowPhys?'<span class="badge">Físico</span>':''}${g.allowDig?'<span class="badge">Digital</span>':''}
         </div>
+        ${(()=>{
+          const gDonations=(data.moneyDonations||[]).filter(d=>d.giftId===g.id);
+          if(!gDonations.length||!g.price) return '';
+          const total=gDonations.reduce((s,d)=>s+(d.amountNum||0),0);
+          const priceN=parseArgNum(g.price);
+          const pct=priceN>0?Math.min(100,Math.round(total/priceN*100)):0;
+          return `<div style="margin-top:6px">
+            <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:3px">
+              <span style="color:var(--accent);font-weight:600">💚 Aportado: <b>$${total.toLocaleString('es-AR')}</b></span>
+              <span style="color:var(--muted)">de ${esc(g.price)}</span>
+            </div>
+            <div style="background:#e0e0e0;border-radius:20px;height:8px;overflow:hidden">
+              <div style="background:${pct>=100?'#27ae60':'var(--accent)'};height:8px;border-radius:20px;width:${pct}%;transition:width .3s"></div>
+            </div>
+            <p style="font-size:.7rem;color:${pct>=100?'#27ae60':'var(--muted)'};margin:3px 0 0;text-align:right">
+              ${pct>=100?'✅ ¡Valor cubierto!':pct+'% del valor aportado'}
+            </p>
+          </div>`;
+        })()}
         ${g.claimedBy
-          ? `<div class="claimed">${g.claimedConfirmed?'🔒 Confirmado para regalarte':'⏳ Reservado para regalarte'}</div>`
+          ? `<div class="claimed">
+              ${g.claimedConfirmed?'🔒 Confirmado':'⏳ Reservado'}
+              ${data.revealed&&g.claimedBy?` · <b style="color:#1b4332">Regalo de: ${esc(g.claimedBy)}</b>`:''}
+              ${g.deliveryInHand===true?' · 🤝 Lo trae en mano':g.deliveryInHand===false?' · 📦 Lo envía':''}
+              ${g.digitalContact?' · 📧 '+esc(g.digitalContact):''}
+            </div>`
           : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
@@ -871,18 +1094,27 @@ async function addGift(code){
   const allowDig=document.getElementById('allowDig')&&document.getElementById('allowDig').checked;
   const data=await sGet('ev:'+code);
   if(!data){alert('No se encontró la lista');return;}
+  if(data.gifts&&data.gifts.length>=20){
+    alert('La lista ya tiene 20 regalos — ese es el máximo permitido.\nBorrá alguno antes de agregar uno nuevo.');
+    return;
+  }
   const priceEl=document.getElementById('newPrice');
   const price=((priceEl||{}).value||'').trim();
   const allowMoney=!!(document.getElementById('allowMoney')&&document.getElementById('allowMoney').checked);
+  if(allowMoney&&!price){
+    alert('Si activás "Regalar el valor estimado", el precio estimado es obligatorio.\nCompletá el precio para que los invitados sepan cuánto aportar.');
+    const priceField=document.getElementById('newPrice');
+    if(priceField){priceField.focus();priceField.style.borderColor='#e74c3c';}
+    return;
+  }
   if(allowMoney&&!data.alias){
     if(!confirm('⚠️ Habilitaste "Regalar el valor estimado" pero no cargaste tu alias/CBU.\n\nSin alias nadie puede transferirte. ¿Querés agregarlo después en Mis datos?\n\nTocá Aceptar para continuar igual, o Cancelar para cargarlo primero.')){return;}
   }
-  const placeEl=document.getElementById('newPlace');
-  const place=((placeEl||{}).value||'').trim();
   const giftImg=window._pendingGiftImg||null;
   window._pendingGiftImg=null;
   window._pendingLinkImg=null;
-  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,allowMoney,manualLink:manualLink||null,place:place||null,price:price||null,img:giftImg,claimedBy:null});
+  const digitalReceiveContact=((document.getElementById('digitalReceiveContact')||{}).value||'').trim();
+  data.gifts.push({id:uid(),name:name.trim(),allowPhys,allowDig,allowMoney,manualLink:manualLink||null,place:null,price:price||null,img:giftImg,claimedBy:null,digitalReceiveContact:digitalReceiveContact||null});
   await sSet('ev:'+code,data);
   // Limpiar campos sin recargar
   const imgInput=document.getElementById('giftImgInput');
@@ -891,14 +1123,20 @@ async function addGift(code){
   if(imgPrevLocal) imgPrevLocal.innerHTML='';
   const linkPrev=document.getElementById('linkImgPreview');
   if(linkPrev) linkPrev.innerHTML='';
-  ['newName','newLink','newPrice','newPlace'].forEach(id=>{
+  ['newName','newLink','newPrice','digitalReceiveContact'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
   });
   const moneyChk=document.getElementById('allowMoney');
   const digChk=document.getElementById('allowDig');
+  const physChk=document.getElementById('allowPhys');
   if(moneyChk) moneyChk.checked=false;
   if(digChk) digChk.checked=false;
+  if(physChk) physChk.checked=true;
+  const pb=document.getElementById('priceBlock');
+  if(pb) pb.style.display='none';
+  const db=document.getElementById('digitalContactBlock');
+  if(db) db.style.display='none';
   showSaved('[data-a="addGift"]','✅ Regalo agregado');
   // Actualizar solo la lista de regalos
   const newData=await sGet('ev:'+code);
@@ -948,11 +1186,19 @@ async function renderGuest(code){
   }
   const data=await sGet('ev:'+code);
   if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
+  if(isEventPast(data)&&!isInGrace(data)&&!isExpired(data)){
+    render(`<div class="card" style="text-align:center;padding:24px">
+      <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+      <h2 style="margin:0 0 8px">¡El evento ya pasó!</h2>
+      <p style="color:var(--muted);font-size:.88rem;margin:0">La lista de ${esc(data.title)} está cerrada.<br>¡Esperamos que haya sido un gran festejo!</p>
+    </div>`);return;
+  }
+  if(isExpired(data)){render('<div class="card" style="text-align:center;padding:24px"><p>Esta lista ya no está disponible.</p></div>');return;}
   const occInfo=occ(data);
   render(`
     <div class="occasion-icon">${occInfo.icon}</div>
     <h1>${esc(data.title)}</h1>
-    <p class="sub">Elegí un regalo para ${esc(data.owner)}. Los que ya fueron elegidos no están disponibles.</p>
+    <p class="sub">Esta es la lista de deseos de <b>${esc(data.owner)}</b>. Elegí un regalo y compráselo — los reservados no están disponibles para otros.</p>
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px">
       <span style="font-size:.88rem">Viendo como <b>${esc(guestName)}</b></span>
       <button class="ghost sm" data-a="changeName" data-x="${esc(code)}">Cambiar</button>
@@ -960,7 +1206,12 @@ async function renderGuest(code){
     <div class="card">
       ${guestGiftList(data,code)}
     </div>
-    <footer>Código: ${esc(code)}</footer>
+    <footer>elregalo.com.ar · Gratis<br>Hecho en Argentina por Agus - Rodo<br>
+<span class="privacy-link" data-a="showFAQ" style="margin-right:12px">❓ Preguntas frecuentes</span>
+<span class="privacy-link" data-a="showHowTo" style="margin-right:12px">📖 Cómo se usa</span>
+<span class="privacy-link" data-a="showPrivacy" style="margin-right:12px">📄 Términos y condiciones</span>
+<span class="privacy-link" data-a="showContact">✉️ Contacto</span><br>
+<span style="font-size:.65rem;color:#aabcb2">© 2026 elregalo.com.ar · Todos los derechos reservados</span></footer>
   `);
   clearTimeout(window._guestTimer);
   window._guestTimer=setTimeout(async()=>{
@@ -986,13 +1237,7 @@ function guestGiftList(data,code){
     let actionBtn='';
     if(!taken){
       actionBtn=`
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir regalo</button>
-          ${g.allowMoney&&data.alias?`<button class="sm" data-a="giftMoney" data-x="${esc(code)}" data-y="${esc(g.id)}"
-            style="background:#fff;color:var(--accent);border:1.5px solid var(--accent);font-size:.78rem">
-            💸 Regalar el valor estimado
-          </button>`:''}
-        </div>`;
+        <button class="sm" data-a="pickGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Elegir regalo</button>`;
     } else if(isMe && !confirmed){
       // Es mío pero sin confirmar: muestro dos botones
       actionBtn=`
@@ -1104,8 +1349,8 @@ const GIFT_EXAMPLES=[
 ];
 let _exIdx=Math.floor(Math.random()*GIFT_EXAMPLES.length);
 function rotatePlaceholder(inp){
-  inp.placeholder='Ej: '+GIFT_EXAMPLES[_exIdx%GIFT_EXAMPLES.length];
   _exIdx++;
+  inp.placeholder='Ej: '+GIFT_EXAMPLES[_exIdx%GIFT_EXAMPLES.length];
 }
 
 function selectCurrency(cur){
@@ -1245,65 +1490,83 @@ async function pickGift(code,gid){
   window._pickType=g.allowPhys?'físico':'digital';
   const onlyPhys=g.allowPhys&&!g.allowDig;
   const onlyDig=g.allowDig&&!g.allowPhys;
+  // Solo mostrar opción de dinero si tiene precio Y allowMoney Y alias cargado
+  const canOfferMoney=!!(g.allowMoney&&data.alias&&g.price);
+  const sp=getSponsor(g.name);
   const modal=document.createElement('div');
   modal.className='modal-bg';
-  const aliasSection=buildAliasSection(data,g);
   modal.innerHTML=`
     <div class="modal">
-      ${g.img?`<div style="text-align:center;margin-bottom:10px"><img src="${g.img}" style="max-width:180px;max-height:140px;border-radius:12px;object-fit:cover;border:2px solid var(--accent)"></div>`:''}
+      ${g.img?`<div style="text-align:center;margin-bottom:10px"><img src="${esc(g.img)}" style="max-width:180px;max-height:140px;border-radius:12px;object-fit:cover;border:2px solid var(--accent)"></div>`:''}
       <h3>${esc(g.name)}</h3>
       ${g.price?`<p style="margin:0 0 8px;font-size:.82rem;background:#fff3cd;border-radius:6px;padding:6px 10px">💰 Precio estimado: <b>${esc(g.price)}</b></p>`:''}
-      ${g.place?`<div style="background:#fff3cd;border:1px solid #f0c040;border-radius:8px;padding:8px 10px;margin-bottom:8px"><p style="margin:0;font-size:.82rem"><b>📍 Lugar recomendado:</b> ${esc(g.place)}</p></div>`:''}
-      ${aliasSection}
-      ${g.allowMoney&&data.alias?`
-      <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:12px;margin-bottom:12px">
-        <p style="font-size:.82rem;color:#1b4332;font-weight:600;margin:0 0 10px">¿Qué querés hacer?</p>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="ghost" data-a="giftMoney" data-x="${esc(code)}" data-y="${esc(gid)}"
-            style="text-align:left;padding:10px 12px;border-color:var(--accent);color:#1b4332">
-            💸 <b>Regalar el valor estimado</b><br>
-            <span style="font-size:.78rem;color:var(--muted);font-weight:400">Transferís lo que podés — el regalo sigue disponible para más aportes</span>
-          </button>
-          <button class="ghost" id="confirmPickBtn" data-a="confirmPick" data-x="${esc(code)}" data-y="${esc(gid)}"
-            style="text-align:left;padding:10px 12px">
-            🎁 <b>Elegir el regalo completo</b><br>
-            <span style="font-size:.78rem;color:var(--muted);font-weight:400">Lo comprás vos — queda reservado y nadie más puede elegirlo</span>
+      ${g.digitalReceiveContact&&g.allowDig?`<div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:8px;padding:10px;margin-bottom:8px">
+        <p style="margin:0 0 4px;font-size:.82rem;font-weight:700;color:#1a3d28">📧 Enviá el regalo digital a:</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <p style="margin:0;font-size:.92rem;font-weight:600;flex:1">${esc(g.digitalReceiveContact)}</p>
+          <button data-a="copyText" data-x="${esc(g.digitalReceiveContact)}"
+            style="padding:6px 12px;font-size:.75rem;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap">
+            📋 Copiar
           </button>
         </div>
       </div>`:''}
-      ${!(g.allowMoney&&data.alias)?`
-      <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px">Quedará reservado para vos y nadie más podrá elegirlo.</p>
-      ${(g.allowPhys&&g.allowDig)?`
-        <label>¿Lo comprás físico o digital?</label>
-        <div class="toggle-row">
-          <button id="btnPhys" class="active" data-a="setType" data-x="físico">📦 Físico</button>
-          <button id="btnDig" data-a="setType" data-x="digital">📱 Digital</button>
-        </div>`:`<p style="font-size:.85rem;margin:0 0 10px"><b>Tipo:</b> ${onlyDig?'📱 Digital':'📦 Físico'}</p>`}
-      <label>Tu ciudad / zona para buscar tiendas cerca tuyo</label>
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
-        <input id="pickCity" placeholder="Ej: Buenos Aires, Palermo" style="margin:0;flex:1">
-        <button class="ghost sm" id="geoBtn" data-a="detectLocation" style="white-space:nowrap;padding:8px 10px">📍 Detectar</button>
+      ${sp?`<div style="background:#f0f9f4;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px"><div><div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.05em;margin-bottom:2px">TIENDA SUGERIDA</div><div style="font-size:.88rem;font-weight:700;color:#1a3d28">${sp.name}</div><div style="font-size:.75rem;color:var(--muted)">${sp.desc}</div></div><a href="${sp.url}" target="_blank" style="background:var(--accent);color:#fff;border-radius:20px;padding:6px 14px;font-size:.75rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">Ver tienda →</a></div>`:''}
+
+      ${canOfferMoney?`
+      <div id="pickChoiceSection" style="margin-bottom:4px">
+        <p style="font-size:.85rem;font-weight:600;color:#333;margin:0 0 10px">¿Cómo querés regalarlo?</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button data-a="chooseMoneyGift" data-x="${esc(code)}" data-y="${esc(gid)}"
+            style="text-align:left;padding:12px 14px;border:1.5px solid var(--accent);border-radius:10px;background:#f0f9f4;cursor:pointer;color:#1a3d28">
+            <b style="color:#1a3d28">💸 Regalar el valor estimado</b><br>
+            <span style="font-size:.78rem;color:var(--muted)">Transferís lo que podás al alias del organizador</span>
+          </button>
+          <button data-a="chooseCompleteGift"
+            style="text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fafafa;cursor:pointer;color:#1a3d28">
+            <b style="color:#1a3d28">🎁 Elegir el regalo completo</b><br>
+            <span style="font-size:.78rem;color:var(--muted)">Lo comprás vos — queda reservado para vos</span>
+          </button>
+        </div>
+        <button data-a="closeModal"
+          style="width:100%;margin-top:10px;padding:8px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:8px;font-size:.82rem;cursor:pointer">
+          ✕ Cerrar sin elegir
+        </button>
       </div>
-      <div id="pickLinks"></div>
-      <div class="row" style="margin-top:14px">
-        <button class="ghost" data-a="closeModal">Cancelar</button>
-        <button id="confirmPickBtn" data-a="confirmPick" data-x="${esc(code)}" data-y="${esc(gid)}">Reservar y ver dónde comprar</button>
-      </div>`:
-      `<div style="margin-top:4px"><button class="ghost sm" data-a="closeModal" style="width:100%">Cerrar</button></div>`}
+      `:''}
+
+      <div id="pickStoreSection" style="${canOfferMoney?'display:none':''}">
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 10px">Quedará reservado para vos y nadie más podrá elegirlo.</p>
+        ${(g.allowPhys&&g.allowDig)?`
+          <label>¿Lo comprás físico o digital?</label>
+          <div class="toggle-row">
+            <button id="btnPhys" class="active" data-a="setType" data-x="físico">📦 Físico</button>
+            <button id="btnDig" data-a="setType" data-x="digital">📱 Digital</button>
+          </div>`
+        :`<p style="font-size:.85rem;margin:0 0 10px"><b>Tipo:</b> ${onlyDig?'📱 Digital':'📦 Físico'}</p>`}
+        <label>Tu ciudad / zona para buscar tiendas cerca tuyo</label>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input id="pickCity" placeholder="Ej: Buenos Aires, Palermo" style="margin:0;flex:1">
+          <button class="ghost sm" id="geoBtn" data-a="detectLocation" style="white-space:nowrap;padding:8px 10px">📍 Detectar</button>
+        </div>
+        <div id="pickLinks"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="ghost" data-a="closeWithoutConfirm" data-x="${esc(code)}" data-y="${esc(gid)}">← Volver</button>
+          <button id="confirmPickBtn" data-a="confirmPick" data-x="${esc(code)}" data-y="${esc(gid)}">Reservar y ver dónde comprar</button>
+        </div>
+      </div>
     </div>
   `;
   document.body.appendChild(modal);
-  // Mostrar link manual del organizador si existe
   if(g.manualLink){
     const area=document.getElementById('pickLinks');
     if(area) area.innerHTML=`
       <div style="background:#e8f4e8;border:1px solid #5c7a52;border-radius:4px;padding:8px 10px;font-size:.83rem;margin-bottom:6px">
         🔗 <b>Link del organizador:</b><br>
         <a href="${esc(g.manualLink)}" target="_blank" rel="noopener" style="color:var(--green);word-break:break-all">${esc(g.manualLink)} ↗</a>
-      </div>
-    `;
+      </div>`;
   }
 }
+
 
 function detectLocation(){
   const btn=document.getElementById('geoBtn');
@@ -1480,10 +1743,30 @@ async function confirmPick(code,gid){
     window._geoLat=null; window._geoLon=null;
     const links=buildLinks(g.name,city,type,g.manualLink||null);
     const aliasSection=buildAliasSection(data,g);
+    const occData=OCCASIONS[data.occasion]||OCCASIONS['cumple'];
+    const deliveryLabel=occData.deliveryLabel||'al evento';
+    const isDigital=isDigitalGift(g.name)||g.allowDig&&!g.allowPhys;
+    const showDelivery=!isDigital;
+    window._deliveryInHand=null;
     const area=document.getElementById('pickLinks');
     if(area) area.innerHTML=`
       <p style="font-size:.83rem;color:var(--green);margin:10px 0 4px">✓ Reservado provisoriamente. Dónde buscarlo:</p>
       <div class="buy-links">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid #5c7a52;':''}">${l.label} ↗</a>`).join('')}</div>
+      ${showDelivery?`<div style="background:#f0f9f4;border:1px solid #c8e6d4;border-radius:12px;padding:14px;margin-top:12px" id="deliverySection">
+        <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1a3d28">¿Como vas a entregarlo?</p>
+        <div style="display:flex;gap:8px">
+          <button id="btnDelivHand" data-a="setDelivery" data-x="hand"
+            style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--accent);font-size:.82rem;cursor:pointer;background:transparent;color:var(--accent);font-weight:600">
+            Te lo llevo ${deliveryLabel}
+          </button>
+          <button id="btnDelivShip" data-a="setDelivery" data-x="ship"
+            style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--accent);font-size:.82rem;cursor:pointer;background:transparent;color:var(--accent);font-weight:600">
+            Te lo envio
+          </button>
+        </div>
+        <p id="deliveryError" style="display:none;color:#c0392b;font-size:.78rem;margin:6px 0 0">Por favor elegí cómo vas a entregar el regalo.</p>
+      </div>`:''}
+
       <div style="background:#fff8e1;border:2px solid #f0c040;border-radius:12px;padding:16px;margin-top:14px">
         <p style="margin:0 0 6px;font-size:1rem;font-weight:700">⚠️ ¿Confirmás este regalo?</p>
         <p style="margin:0 0 12px;font-size:.83rem;color:#7a5c00;line-height:1.5">
@@ -1518,11 +1801,20 @@ async function confirmPick(code,gid){
 }
 
 async function finalConfirm(code,gid){
+  // Validar entrega si aplica
+  const delivSection=document.getElementById('deliverySection');
+  if(delivSection&&window._deliveryInHand===null){
+    const errEl=document.getElementById('deliveryError');
+    if(errEl) errEl.style.display='block';
+    return;
+  }
   try{
     const data=await sGet('ev:'+code);
     const g=data&&data.gifts.find(x=>x.id===gid);
     if(!g||!g.claimedBy){document.querySelector('.modal-bg')?.remove();renderGuest(code);return;}
     g.claimedConfirmed=true;
+    if(window._deliveryInHand!==null) g.deliveryInHand=window._deliveryInHand;
+
     await sSet('ev:'+code,data);
     const area=document.getElementById('pickLinks');
     const ownerEmail=data.ownerEmail||null;
@@ -1571,9 +1863,14 @@ async function finalConfirm(code,gid){
             ¡Gracias! <b>${esc(data.owner)}</b> va a estar muy contento/a de recibir <b>${esc(g.name)}</b>.<br>
             El regalo está reservado para vos — nadie más puede elegirlo. 🎁
           </p>
+          <div style="background:#fff3cd;border:1px solid #f0c040;border-radius:8px;padding:10px;margin-top:10px;text-align:left">
+            <p style="margin:0;font-size:.8rem;color:#7a5c00;line-height:1.5">
+              <b>⚠️ Importante:</b> Esto es una lista de deseos. Reservar el regalo significa que te comprometés a comprarlo y regalárselo a <b>${esc(data.owner)}</b>. <b>¡Todavía falta que lo compres!</b>
+            </p>
+          </p>
         </div>
         ${notifySection}
-        ${requestSection}
+        ${(window._deliveryInHand===true||g.allowDig&&!g.allowPhys||isDigitalGift(g.name))?'':requestSection}
       `;
     }
     const finalBtn=document.getElementById('finalConfirmBtn');
@@ -1680,13 +1977,7 @@ async function saveAlias(code){
   data.alias=alias||null;
   data.aliasTitular=titular||null;
   await sSet('ev:'+code,data);
-  showSaved('[data-a="saveAlias"]');
-  // Actualizar vista del alias sin recargar
-  const aliasDisplay=document.querySelector('#aliasDisplay');
-  if(aliasDisplay&&alias){
-    aliasDisplay.textContent='💳 '+alias;
-    aliasDisplay.style.display='block';
-  }
+  await renderOwner(code,1);
 }
 
 async function saveAddress(type,code){
@@ -1772,6 +2063,62 @@ function shareOther(guestLink,title){
   }
 }
 
+function showFAQ(){
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal" style="max-height:85vh;overflow-y:auto">
+    <h3 style="margin:0 0 16px">❓ Preguntas frecuentes</h3>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Es gratis?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí, 100% gratis. Sin suscripciones, sin tarjeta, sin trucos.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Necesito crear una cuenta?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">No. Ni el organizador ni los invitados necesitan registrarse. Solo entrás y listo.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿El organizador sabe quién eligió cada regalo?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">No. El organizador solo ve que un regalo fue reservado, pero no quién lo eligió. La privacidad es total.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo cambiar de opinión después de reservar?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí, podés cancelar la reserva antes de confirmarla definitivamente. Una vez confirmada, ya no se puede cancelar.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cuánto tiempo dura la lista?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">30 días desde que se crea. El organizador también puede borrarla antes desde su panel.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cómo recibe el dinero si activo "Regalar el valor estimado"?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">El organizador carga su alias o CBU bancario. Los aportes se hacen por transferencia directa entre personas — elregalo.com.ar no interviene ni cobra comisión.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Es seguro?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí. No guardamos datos personales sensibles. Los datos se almacenan de forma segura y se borran automáticamente al vencer la lista.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo saber quién me regaló qué después del evento?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí. Después del evento tenés 7 días para tocar "Ver quién regaló cada cosa" en tu panel. Ahí aparecen los nombres de cada persona junto al regalo que eligió, para que puedas agradecerles.</p>
+    </div>
+
+    <div style="padding-bottom:4px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Tienen soporte o contacto?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí, escribinos a <b>contacto@elregalo.com.ar</b> y te respondemos.</p>
+    </div>
+
+    <button data-a="closeModal" style="width:100%;margin-top:8px">Entendido ✓</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
 function showContact(){
   const modal=document.createElement('div');
   modal.className='modal-bg';
@@ -1790,11 +2137,11 @@ function showContact(){
     <div style="background:#fff8e1;border:1px solid #f0c040;border-radius:10px;padding:16px;margin-bottom:12px">
       <p style="margin:0 0 10px;font-size:.95rem;font-weight:700;color:#7a5c00;text-align:center">🇦🇷 ¿Quiénes somos?</p>
       <p style="margin:0;font-size:.84rem;line-height:1.75;color:#4a3000">
-        Somos <b>Agus y Rodo</b>, dos amigos argentinos.<br><br>
-        Todo empezó por una necesidad real de Agus: quería coordinar sus regalos de cumpleaños
-        sin spoilers, sin que nadie compre lo mismo y sin tener que estar preguntando a todos qué
-        iban a regalar. Juntos pensamos que esta idea le podía servir a mucha más gente.<br><br>
-        Rodo se puso a construirla junto con Inteligencia Artificial y así nació
+        Somos <b>dos amigos argentinos</b>.<br><br>
+        Todo empezó por una necesidad real: uno de nosotros quería coordinar los regalos
+        de una fiesta sin arruinar la sorpresa de nadie, sin que nadie compre lo mismo
+        y sin tener que estar preguntando a todos qué iban a regalar.<br><br>
+        Juntos encontramos la solución usando Inteligencia Artificial, y así nació
         <b>elregalo.com.ar</b> — gratis y hecho con cariño desde Argentina para el mundo. 🎁
       </p>
     </div>
@@ -1802,7 +2149,7 @@ function showContact(){
     <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:4px;text-align:center">
       <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.6">
         elregalo.com.ar · Gratis · Hecho en Argentina 🇦🇷<br>
-        <b>por Agus &amp; Rodo</b>
+        <b>Hecho en Argentina 🇦🇷</b>
       </p>
     </div>
 
@@ -1842,6 +2189,7 @@ function showHowTo(){
     <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:12px">
       <p style="margin:0 0 8px;font-size:.9rem;font-weight:700">💡 Tips útiles</p>
       <p style="margin:0;font-size:.82rem;line-height:1.8">
+        • <b>Viajes y experiencias grandes:</b> Para un viaje de bodas, los quince o cualquier regalo caro, activá "💸 Regalar el valor estimado". Así cada invitado puede aportar lo que quiera y entre todos completar el monto.<br>
         • Los regalos tachados ya fueron elegidos — no los podés reservar.<br>
         • Podés aportar dinero parcialmente — varios pueden aportar para el mismo regalo.<br>
         • Si querés enviar el regalo físicamente, pedile la dirección al organizador desde la app.<br>
@@ -1870,7 +2218,7 @@ function showPrivacy(){
 
     <p style="font-size:.82rem;font-weight:700;margin:12px 0 4px">1. Información general</p>
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
-      elregalo.com.ar es una aplicación web gratuita creada por particulares (Agus y Rodo) para
+      elregalo.com.ar es una aplicación web gratuita creada por dos amigos argentinos para
       coordinar listas de regalos entre personas. No es una empresa ni un servicio comercial.
       El uso de la app es completamente voluntario y gratuito.
     </p>
@@ -1891,7 +2239,7 @@ function showPrivacy(){
     <p style="font-size:.8rem;color:#444;line-height:1.6;margin:0 0 10px">
       Los datos ingresados se usan exclusivamente para el funcionamiento de la lista de regalos.
       <b>No se venden, ceden ni comparten con terceros</b> con fines comerciales ni de ningún otro tipo.
-      No se usan para publicidad ni para perfilar a los usuarios.<br><br>
+      
       <b>Las direcciones postales NO se almacenan en la app.</b> Si un invitado solicita
       una dirección de envío, el organizador la comparte directamente por fuera de la aplicación
       (WhatsApp, teléfono, etc.). elregalo.com.ar no interviene en ese intercambio.
@@ -1938,7 +2286,7 @@ function showPrivacy(){
       Esta política se rige por las leyes de la <b>República Argentina</b>, en particular: Ley 25.326 (Protección de Datos Personales), Ley 24.240 (Defensa del Consumidor) y normativa de la AAIP (Agencia de Acceso a la Información Pública).
     </p>
 
-    <button data-a="closeModal" style="width:100%;margin-top:16px">Cerrar</buttonx">Cerrar</button>
+    <button data-a="closeModal" style="width:100%;margin-top:16px">Entendido ✓</button>
   </div>`;
   document.body.appendChild(modal);
 }
@@ -1949,7 +2297,7 @@ function clearLastList(){
 }
 
 async function deleteList(code){
-  if(!confirm('¿Seguro que querés borrar toda la lista? Esta acción no se puede deshacer.')) return;
+  if(!confirm('⚠️ ¿Seguro que querés borrar la lista?\n\nEsta acción NO se puede deshacer.\nSe borrarán todos los regalos, reservas y datos de la lista para siempre.\n\nSolo confirmá si estás seguro.')) return;
   // Borrar del storage
   try{ await sSet('ev:'+code, null); }catch(e){}
   // Borrar del localStorage si era la lista guardada
@@ -1957,6 +2305,31 @@ async function deleteList(code){
     try{localStorage.removeItem('lastOwnerCode');localStorage.removeItem('lastOwnerTitle');}catch(e){}
   }
   renderHome();
+}
+
+// ── SPONSORS (publicidad contextual) ──
+// Para agregar un comercio adherido: {name, desc, url, keywords:[...palabras clave...]}
+const SPONSORS = [
+  {name:'PharmacyCity',desc:'Perfumería y cosmética',url:'https://www.pharmacycity.com.ar',
+   keywords:['perfume','colonia','fragancia','desodorante','crema','maquillaje','cosmetico','cosmetica','labial','serum','locion','esmalte','shampoo','jabon','cuidado personal','beauty','tratamiento']},
+  {name:'Librería',desc:'Libros y papelería',url:'https://www.mercadolibre.com.ar/libros',
+   keywords:['libro','novela','cuento','lectura','literatura','poesia','enciclopedia','comic','manga','agenda','cuaderno','papeleria']},
+  {name:'Tienda de tecnología',desc:'Electrónica y gadgets',url:'https://www.mercadolibre.com.ar/electronica',
+   keywords:['celular','notebook','tablet','computadora','auricular','parlante','smartwatch','camara','drone','consola','televisor','tele','pantalla','monitor','teclado','mouse','heladera','lavarropas','aire acondicionado','microondas','licuadora','cafetera']},
+  {name:'Juguetería',desc:'Juguetes y juegos',url:'https://www.mercadolibre.com.ar/juguetes',
+   keywords:['juguete','muñeca','auto de juguete','lego','puzzle','rompecabezas','peluche','juego de mesa','muñeco','patineta']},
+  {name:'Bazar del hogar',desc:'Artículos para el hogar',url:'https://www.mercadolibre.com.ar/hogar',
+   keywords:['vajilla','cubierto','olla','sarten','bateria de cocina','fuente','plato','taza','jarra','organizador','cesto','alfombra','lampara','espejo','mantel','sabana','toalla','almohadon','edredon','bazar']},
+  {name:'Tienda deportiva',desc:'Artículos deportivos',url:'https://www.mercadolibre.com.ar/deportes',
+   keywords:['bicicleta','raqueta','yoga','pesas','running','zapatillas deporte','caminadora','pelota futbol','pelota basket','guante','casco','patines','fitness','gym','deporte']},
+  {name:'Tienda de ropa',desc:'Indumentaria y accesorios',url:'https://www.mercadolibre.com.ar/ropa',
+   keywords:['ropa','camisa','remera','pantalon','jean','vestido','zapatillas','zapatos','cartera','bolso','mochila','cinturon','bufanda','gorro','guantes','pijama','medias','ropa interior','campera','abrigo']}
+];
+
+function getSponsor(giftName){
+  if(!giftName) return null;
+  const lower = giftName.toLowerCase();
+  return SPONSORS.find(s => s.keywords.some(k => lower.includes(k))) || null;
 }
 
 // ── PRÓXIMAMENTE (cambiar a false cuando esté listo) ──
@@ -1970,6 +2343,32 @@ const COMING_SOON = true;
   else if(h.g) renderGuest(h.g);
   else renderHome();
 })();
+document.addEventListener('input',function(e){
+  if(e.target&&e.target.id==='ownerName') autoFillTitle();
+});
+document.addEventListener('change',function(e){
+  if(e.target&&e.target.id==='allowDig'){
+    const block=document.getElementById('digitalContactBlock');
+    if(block) block.style.display=e.target.checked?'block':'none';
+    if(!e.target.checked){
+      const inp=document.getElementById('digitalReceiveContact');
+      if(inp) inp.value='';
+    }
+  }
+  if(e.target&&e.target.id==='allowMoney'){
+    const priceBlock=document.getElementById('priceBlock');
+    const priceField=document.getElementById('newPrice');
+    if(priceBlock){
+      priceBlock.style.display=e.target.checked?'block':'none';
+      if(e.target.checked&&priceField){
+        priceField.scrollIntoView({behavior:'smooth',block:'center'});
+        priceField.focus();
+      } else if(!e.target.checked&&priceField){
+        priceField.value='';
+      }
+    }
+  }
+});
 window.addEventListener('hashchange',function(){
   if(COMING_SOON){ renderComingSoon(); return; }
   if(_showingCreated) return;
