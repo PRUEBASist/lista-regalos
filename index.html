@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3XFNG1T1NS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3XFNG1T1NS');
+</script>
 <meta charset="UTF-8">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
@@ -130,43 +138,6 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
   </div>
 </noscript>
 <script>
-// ── EMAILJS (API REST directa, sin SDK) ──
-const EJS_SERVICE  = 'service_kn3y6vo';
-const EJS_TEMPLATE = 'template_uyuzaxr';
-const EJS_KEY      = 'o-_TYLRdXUIX3FZZb';
-
-async function sendMailAuto(toEmail, toName, subject, body){
-  try{
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        service_id:   EJS_SERVICE,
-        template_id:  EJS_TEMPLATE,
-        user_id:      EJS_KEY,
-        template_params: {
-          to_email: toEmail,
-          to_name:  toName,
-          name:     toName,
-          email:    toEmail,
-          title:    subject,
-          subject:  subject,
-          message:  body
-        }
-      })
-    });
-    const txt = await res.text();
-    if(!res.ok){
-      console.error('EmailJS error HTTP '+res.status+':', txt);
-      return false;
-    }
-    console.log('EmailJS OK:', txt);
-    return true;
-  } catch(e){
-    console.error('EmailJS fetch error:', e.message);
-    return false;
-  }
-}
 
 // ── SUPABASE ──
 const SB_URL = 'https://xiapoxfttymlkyvbpamt.supabase.co';
@@ -182,7 +153,11 @@ const LIST_GRACE_MS    =  7 * 24 * 60 * 60 * 1000; // 7 días de gracia post-eve
 const LIST_TOTAL_MS    = LIST_DURATION_MS + LIST_GRACE_MS; // 37 días total
 
 function getEventEnd(data){
-  if(data&&data.eventDate) return data.eventDate;
+  if(data&&data.eventDate){
+    // eventDate puede ser string "2026-08-12" o timestamp numérico
+    const t=typeof data.eventDate==='number'?data.eventDate:new Date(data.eventDate).getTime();
+    return isNaN(t)?Date.now():t;
+  }
   return data&&data.created ? data.created+LIST_DURATION_MS : Date.now();
 }
 function isEventPast(data){
@@ -196,6 +171,37 @@ function isExpired(data){
   if(!data) return false;
   const end=getEventEnd(data);
   return Date.now() > end+(7*24*60*60*1000);
+}
+
+// ── SEGURIDAD: hash de contraseñas con Web Crypto ──
+async function hashPass(pass){
+  try{
+    const buf=new TextEncoder().encode(pass.toUpperCase());
+    const hash=await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return pass; } // fallback si crypto no está disponible
+}
+
+// ── sGetFresh: siempre lee de Supabase (ignora caché local) ──
+async function sGetFresh(key){
+  const code=key.replace('ev:','');
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/events?code=eq.${code}&select=data`,{headers:SB_HDR});
+    const rows=await r.json();
+    if(rows&&rows.length){const d=rows[0].data;lsSet(key,d);return d;}
+  }catch(e){}
+  return lsGet(key);
+}
+
+// ── sGetGuest: igual que sGet pero sin datos sensibles del organizador ──
+async function sGetGuest(key){
+  const data=await sGet(key);
+  if(data){
+    delete data.ownerPass;
+    delete data.ownerPassHash;
+    delete data.ownerEmail;
+  }
+  return data;
 }
 
 async function sGet(key){
@@ -241,7 +247,17 @@ function saveGuestName(code,name){
 function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function uid(){return 'g'+Date.now()+Math.random().toString(36).slice(2,5);}
 function render(html){app.innerHTML=html;}
-function genCode(){return Math.random().toString(36).slice(2,7).toUpperCase();}
+function genCode(){
+  const letras='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const nums='0123456789';
+  const l1=letras[Math.floor(Math.random()*letras.length)];
+  const l2=letras[Math.floor(Math.random()*letras.length)];
+  const n1=Math.floor(Math.random()*10);
+  const n2=Math.floor(Math.random()*10);
+  const n3=Math.floor(Math.random()*10);
+  const n4=Math.floor(Math.random()*10);
+  return l1+l2+n1+n2+n3+n4;
+}
 
 // ── HASH (URL) ──
 function getHash(){
@@ -303,7 +319,7 @@ function dispatch(a,x,y){
     'copyAddrReq':()=>copyAddrReqMsg(x,y),
     'copyMsg':()=>copyText(x),
     'notifyOwner':()=>openMailto(buildNotifyMailto(x,...y.split('|||'))),
-    'saveAlias':()=>saveAlias(x),
+
     'saveAddress':()=>saveAddress(x,y),
     'copyAddr':()=>copyAddr(x,y),
     'copyAddrForReq':()=>copyAddr(x,y),
@@ -312,20 +328,32 @@ function dispatch(a,x,y){
         setHash({o:x}); renderOwner(x);
       }
     },
+    'setDeliveryDig':()=>{
+      window._deliveryDig=true;
+      const btn=document.getElementById('btnDelivDig');
+      if(btn){btn.style.background='var(--accent)';btn.style.color='#fff';}
+      const dc=document.getElementById('digitalContactInvitado');
+      if(dc) dc.style.display='block';
+    },
     'setDelivery':()=>{
       window._deliveryInHand=(x==='hand');
       const btnH=document.getElementById('btnDelivHand');
       const btnS=document.getElementById('btnDelivShip');
       const errEl=document.getElementById('deliveryError');
       if(errEl) errEl.style.display='none';
-      if(btnH&&btnS){
+      if(btnH){
         btnH.style.background=x==='hand'?'var(--accent)':'transparent';
         btnH.style.color=x==='hand'?'#fff':'var(--accent)';
         btnH.style.borderColor='var(--accent)';
+      }
+      if(btnS){
         btnS.style.background=x==='ship'?'var(--accent)':'transparent';
         btnS.style.color=x==='ship'?'#fff':'var(--accent)';
         btnS.style.borderColor='var(--accent)';
       }
+      // Mostrar campo de contacto digital si es envío
+      const digContact=document.getElementById('digitalContactInvitado');
+      if(digContact) digContact.style.display=x==='ship'?'block':'none';
     },
     'chooseCompleteGift':()=>{
       const cs=document.getElementById('pickChoiceSection');
@@ -366,6 +394,107 @@ function dispatch(a,x,y){
     'ownerStep':()=>{ _ownerStep=parseInt(x); renderOwner(y,parseInt(x)); },
 
     'copyCode':()=>copyText(x),
+    'downloadQR':async()=>{
+      const owner=y, code2=x;
+      // Mostrar modal previo con campo de CBU/alias
+      const m=document.createElement('div');
+      m.className='modal-bg';
+      m.innerHTML=`<div class="modal">
+        <h3 style="margin:0 0 8px;color:#1b4332">⬇️ Descargar QR</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
+          Este QR lo podés imprimir o mostrar en el evento para que tus invitados accedan a tu lista fácilmente. Escaneándolo entran directo, sin necesidad del código.
+        </p>
+        <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
+          <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias o CBU? (opcional)</p>
+          <p style="margin:0 0 8px;font-size:.75rem;color:var(--muted);line-height:1.4">Se imprime en la tarjeta para que te puedan transferir. <b>No se guarda en ningún lado.</b></p>
+          <input id="qrAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
+        </div>
+        <button id="btnDoDownload" style="width:100%;padding:14px;font-weight:700;font-size:.95rem;margin-bottom:8px">⬇️ Descargar tarjeta</button>
+        <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
+      </div>`;
+      document.body.appendChild(m);
+      document.getElementById('btnDoDownload').addEventListener('click',()=>{
+        const alias=((document.getElementById('qrAlias')||{}).value||'').trim();
+        m.remove();
+        // Generar canvas
+        const link=`https://elregalo.com.ar/#g=${code2}`;
+        const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=1d5c40&bgcolor=ffffff&data=${encodeURIComponent(link)}`;
+        const hasAlias=!!alias;
+        const H=hasAlias?600:510;
+        const canvas=document.createElement('canvas');
+        canvas.width=460; canvas.height=H;
+        const ctx=canvas.getContext('2d');
+        // Fondo blanco con borde redondeado
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,460,H);
+        ctx.strokeStyle='#1d5c40'; ctx.lineWidth=5;
+        if(ctx.roundRect){ctx.beginPath();ctx.roundRect(2,2,456,H-4,18);ctx.stroke();}
+        // Header verde
+        ctx.fillStyle='#1d5c40';
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(2,2,456,80,{upperLeft:18,upperRight:18,lowerLeft:0,lowerRight:0});
+        else ctx.rect(2,2,456,80);
+        ctx.fill();
+        ctx.fillStyle='#ffffff';
+        ctx.font='500 13px Arial,sans-serif'; ctx.textAlign='center';
+        ctx.fillText('LISTA DE REGALOS DE',230,28);
+        ctx.font='bold 26px Arial,sans-serif';
+        // Truncar nombre si es muy largo
+        let ownerText=owner.toUpperCase();
+        ctx.fillText(ownerText,230,62);
+        // QR sobre fondo blanco
+        const img=new Image(); img.crossOrigin='anonymous';
+        img.onload=()=>{
+          ctx.drawImage(img,105,94,250,250);
+          // Texto bajo QR
+          ctx.fillStyle='#1d5c40'; ctx.font='bold 15px Arial,sans-serif';
+          ctx.fillText('Escaneá para ver y elegir regalos',230,364);
+          ctx.fillStyle='#444'; ctx.font='13px Arial,sans-serif';
+          ctx.fillText('Código de lista: '+code2,230,386);
+          // Alias si tiene
+          if(hasAlias){
+            // Caja alias
+            ctx.fillStyle='#f0f7f0';
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
+            ctx.fill();
+            ctx.strokeStyle='#c8e6d4'; ctx.lineWidth=1.5;
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
+            ctx.stroke();
+            ctx.fillStyle='#555'; ctx.font='12px Arial,sans-serif';
+            ctx.fillText('Para hacer tu aporte, transferí a:',230,428);
+            ctx.fillStyle='#1d5c40'; ctx.font='bold 20px Arial,sans-serif';
+            ctx.fillText(alias,230,458);
+            ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
+            ctx.fillText('alias / CBU / CVU',230,476);
+          }
+          // Separador
+          const sepY=hasAlias?500:406;
+          ctx.strokeStyle='#e0e0e0'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(30,sepY); ctx.lineTo(430,sepY); ctx.stroke();
+          // Footer
+          const fY=hasAlias?524:428;
+          ctx.fillStyle='#1d5c40'; ctx.font='bold 16px Arial,sans-serif';
+          ctx.fillText('elregalo.com.ar',230,fY);
+          ctx.fillStyle='#888'; ctx.font='12px Arial,sans-serif';
+          ctx.fillText('Gratis · Sin registro · Hecho en Argentina',230,fY+22);
+          ctx.fillStyle='#aaa'; ctx.font='11px Arial,sans-serif';
+          ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+40);
+          const a=document.createElement('a');
+          a.download=`qr-lista-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
+          a.href=canvas.toDataURL('image/png'); a.click();
+        };
+        img.onerror=()=>{ window.open(qrUrl,'_blank'); };
+        img.src=qrUrl;
+      });
+    },
+    'printQR':()=>{
+      const card=document.getElementById('qrCard');
+      if(!card) return;
+      const w=window.open('','_blank','width=440,height=620');
+      w.document.write('<!DOCTYPE html><html><head><title>QR elregalo.com.ar</title><style>body{margin:32px;display:flex;justify-content:center;font-family:sans-serif;background:#fff}@media print{body{margin:0}}</style></head><body>'+card.outerHTML+'<script>window.onload=function(){window.print();}<\/script></body></html>');
+      w.document.close();
+    },
     'shareNative':()=>shareNative(x,y),
     'shareFacebook':()=>shareFacebook(x),
     'shareX':()=>shareX(x,y),
@@ -557,13 +686,9 @@ function renderCreate(){
       <input type="hidden" id="listTitle" value="">
       <label>📅 Fecha del evento <span style="font-weight:400;color:var(--muted)">(recomendado)</span></label>
       <input type="date" id="eventDate" min="${fmt(today)}" max="${fmt(maxDate)}" style="margin-bottom:6px">
-      <p style="font-size:.75rem;color:var(--muted);margin:-2px 0 12px;line-height:1.4">
+      <p style="font-size:.75rem;color:var(--muted);margin:-2px 0 4px;line-height:1.4">
         Después del evento tenés 7 días para ver quién te regaló cada cosa.
       </p>
-      <label>Tu email <span style="font-weight:400;color:var(--muted)">(opcional — para notificaciones)</span></label>
-      <input id="ownerEmail" type="email" placeholder="tu@email.com" autocomplete="email">
-      <label>Contraseña de tu lista <span style="font-weight:400;color:var(--muted)">(para que solo vos puedas editarla)</span></label>
-      <input id="ownerPass" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password">
     </div>
     <button data-a="createList" style="width:100%;padding:16px;font-size:1rem;font-weight:600">
       Crear lista ✓
@@ -587,15 +712,9 @@ async function createList(){
   const occData=OCCASIONS[occType]||OCCASIONS['cumple'];
   const titleEl=document.getElementById('listTitle');
   const title=(titleEl&&titleEl.value.trim())||(occData.prefix+' '+owner);
-  const emailEl=document.getElementById('ownerEmail');
-  const email=(emailEl&&emailEl.value||'').trim();
-  const passEl=document.getElementById('ownerPass');
-  const pass=(passEl&&passEl.value||'').trim();
-  if(pass&&pass.length<4){
-    alert('La contraseña tiene que tener al menos 4 caracteres.');
-    if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
-    return;
-  }
+  const email='';
+  const passPlain=uid().substring(0,6).toUpperCase();
+  const pass=passPlain; // se hashea antes de guardar
   const eventDateEl=document.getElementById('eventDate');
   const eventDateVal=eventDateEl&&eventDateEl.value?new Date(eventDateEl.value+'T23:59:59').getTime():null;
   if(eventDateVal){
@@ -612,10 +731,11 @@ async function createList(){
       return;
     }
   }
-  const code=uid();
+  const code=genCode();
+  const ownerPassHash=await hashPass(passPlain);
   const data={
     owner:owner,occasion:occType,title:title,
-    ownerEmail:email,ownerPass:pass,
+    ownerEmail:email,ownerPass:passPlain,ownerPassHash:ownerPassHash,
     gifts:[],created:Date.now(),
     eventDate:eventDateVal||null
   };
@@ -624,7 +744,39 @@ async function createList(){
     lsSet('lastOwnerCode',code);
     lsSet('lastOwnerTitle',title);
     lsSet('lastOwnerPass',pass);
-    await renderOwner(code,2);
+    // Modal obligatorio — código y contraseña
+    await new Promise(resolve => {
+      const m = document.createElement('div');
+      m.className = 'modal-bg';
+      m.innerHTML = `
+        <div class="modal">
+          <div style="text-align:center;margin-bottom:12px">
+            <div style="font-size:2.5rem">🔐</div>
+            <h2 style="margin:8px 0 4px;color:#1b4332">¡Lista creada!</h2>
+            <p style="font-size:.82rem;color:var(--muted);margin:0">Guardá estos datos — los vas a necesitar para volver a entrar y editar tu lista.</p>
+          </div>
+          <div style="background:#ffe0f0;border:2px solid #e0a0c0;border-radius:12px;padding:16px;margin-bottom:14px">
+            <label style="color:#8b0057;font-size:.75rem">CÓDIGO DE TU LISTA</label>
+            <div class="codebox" style="margin-top:4px">${code}</div>
+            <button class="ghost sm" data-a="copyCode" data-x="${code}" style="width:100%;margin-top:6px">Copiar código</button>
+            <label style="color:#8b0057;font-size:.75rem;margin-top:10px;display:block">CONTRASEÑA</label>
+            <div class="codebox" style="margin-top:4px;letter-spacing:.15em">${passPlain}</div>
+            <button class="ghost sm" data-a="copyText" data-x="${passPlain}" style="width:100%;margin-top:6px">Copiar contraseña</button>
+          </div>
+          <p style="font-size:.78rem;color:#c0392b;font-weight:600;text-align:center;margin-bottom:14px">
+            ⚠️ Sacá una captura de pantalla ahora.<br>Sin estos datos no podés volver a entrar.
+          </p>
+          <button id="btnSigueCodigo" style="width:100%;padding:16px;font-size:.95rem;font-weight:700">
+            ✓ Ya los guardé — continuar
+          </button>
+        </div>`;
+      document.body.appendChild(m);
+      document.getElementById('btnSigueCodigo').addEventListener('click', ()=>{
+        m.remove();
+        resolve();
+      });
+    });
+    await renderOwner(code,1);
   }catch(e){
     alert('No se pudo crear la lista. Intentá de nuevo.');
     if(btn){btn.disabled=false;btn.textContent='Crear lista ✓';}
@@ -636,7 +788,7 @@ function renderJoin(){
     <h1>elregalo.com.ar 🎁</h1>
     <div class="card">
       <label>Código de la lista</label>
-      <input id="joinCode" placeholder="Ej: AB12C" style="text-transform:uppercase;letter-spacing:.1em">
+      <input id="joinCode" placeholder="Ej: AB1234" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase;letter-spacing:.1em">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
         <input type="checkbox" id="iAmOwner" style="width:auto;margin:0" onchange="document.getElementById('passRow').style.display=this.checked?'block':'none'">
         Soy el organizador de esta lista
@@ -652,7 +804,7 @@ function renderJoin(){
 }
 
 async function joinList(){
-  const raw=(document.getElementById('joinCode')||{}).value||'';
+  const raw=((document.getElementById('joinCode')||{}).value||'').trim().toUpperCase();
   const code=raw.trim().toUpperCase();
   const isOwner=document.getElementById('iAmOwner')&&document.getElementById('iAmOwner').checked;
   if(!code){alert('Escribí el código');return;}
@@ -661,14 +813,18 @@ async function joinList(){
   const data=await sGet('ev:'+code);
   if(btn){btn.disabled=false;btn.textContent='Entrar';}
   if(!data){
-    alert('No encontré esa lista. Revisá que el código esté bien escrito (5 letras, mayúsculas).');
+    alert('No encontré esa lista. Revisá que el código esté bien escrito (2 letras y 4 números, mayúsculas).');
     return;
   }
   if(isOwner){
     const pass=((document.getElementById('joinPass')||{}).value||'').trim();
     if(!pass){alert('Escribí tu contraseña de organizador.');return;}
-    if(data.ownerPass && pass!==data.ownerPass){
-      alert('Contraseña incorrecta. Revisá el mail que te llegó cuando creaste la lista.');
+    // Verificar contraseña: primero con hash, luego con texto plano (compatibilidad)
+    const enteredHash=await hashPass(pass);
+    const hashMatch=data.ownerPassHash && enteredHash===data.ownerPassHash;
+    const plainMatch=data.ownerPass && pass.toUpperCase()===data.ownerPass.toUpperCase();
+    if(!hashMatch && !plainMatch){
+      alert('Contraseña incorrecta. Revisá la captura de pantalla o el lugar donde guardaste la contraseña.');
       if(btn){btn.disabled=false;btn.textContent='Entrar';}
       return;
     }
@@ -697,20 +853,12 @@ function ownerStepContent(data, code, guestLink, step){
 
   if(step===1) return stepBar + `
     <div class="card">
-      <h3 style="margin:0 0 4px">💸 Alias para recibir dinero <span style="font-size:.75rem;color:var(--muted);font-weight:400">(opcional)</span></h3>
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 10px">Si querés que te puedan regalar el valor estimado, cargá el alias de tu banco o billetera virtual, o tu CBU/CVU.</p>
-      ${data.alias ? `
-        <div style="background:#f0f7f0;border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
-          ${data.aliasTitular?`<p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">${esc(data.aliasTitular)}</p>`:''}
-          <p style="font-size:.95rem;font-weight:700;letter-spacing:1px;margin:0">💳 ${esc(data.alias)}</p>
-        </div>
-        <button class="ghost sm" data-a="copyText" data-x="${esc(data.alias)}" style="width:100%;margin-bottom:8px">Copiar alias</button>` :
-        '<p style="font-size:.8rem;color:var(--muted);font-style:italic;margin:0 0 8px">No cargaste alias todavía.</p>'}
-      <label>Nombre completo del titular</label>
-      <input id="aliasTitular" placeholder="Ej: María García" value="${esc(data.aliasTitular||'')}">
-      <label>Alias / CBU / CVU</label>
-      <input id="aliasInput" placeholder="Ej: maria.garcia o 0000003100..." value="${esc(data.alias||'')}">
-      <button data-a="saveAlias" data-x="${esc(code)}" style="width:100%">Guardar</button>
+      <div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:10px;padding:12px">
+        <p style="margin:0 0 4px;font-size:.88rem;font-weight:700;color:#1a3d28">💸 ¿Cómo recibís el dinero?</p>
+        <p style="margin:0;font-size:.78rem;color:var(--muted);line-height:1.5">
+          Cuando alguien quiera hacerte un aporte, la app le va a pedir que te contacte directamente para pedirte el alias. Así tus datos bancarios quedan siempre privados. 😉
+        </p>
+      </div>
     </div>
     <div class="card" style="background:#f9f4e8;border-color:var(--line)">
       <h3 style="margin:0 0 6px">📦 Envío físico</h3>
@@ -753,13 +901,9 @@ function ownerStepContent(data, code, guestLink, step){
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
         <label><input type="checkbox" id="allowPhys" checked style="width:auto;margin-right:5px">📦 Físico</label>
         <label><input type="checkbox" id="allowDig" style="width:auto;margin-right:5px">📱 Digital</label>
-        <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Regalar el valor estimado</label>
+        <label><input type="checkbox" id="allowMoney" style="width:auto;margin-right:5px">💸 Permitir aportes de dinero</label>
       </div>
-      <div id="digitalContactBlock" style="display:none;background:#e8f4fd;border:1px solid #aed6f1;border-radius:10px;padding:12px;margin-bottom:12px">
-        <p style="margin:0 0 6px;font-size:.82rem;font-weight:700;color:#1a3d28">📧 ¿A dónde te envían el regalo digital?</p>
-        <p style="margin:0 0 8px;font-size:.75rem;color:var(--muted)">Dejá tu email o WhatsApp para que quien te regale sepa dónde enviártelo. (opcional)</p>
-        <input id="digitalReceiveContact" placeholder="Ej: tu@email.com o +54 11 1234-5678" style="margin:0">
-      </div>
+
       <label>Foto del producto <span style="font-weight:400;color:var(--muted)">(opcional — cámara o galería)</span></label>
       <div style="background:#fafafa;border:1.5px dashed #bbb;border-radius:10px;padding:10px;text-align:center;margin-bottom:10px">
         <label for="giftImgInput" style="cursor:pointer;display:inline-block">
@@ -784,7 +928,7 @@ function ownerStepContent(data, code, guestLink, step){
 
   if(step===3) return stepBar + `
     <div class="card">
-      <label>Código de la lista</label>
+      <label>Código de tu lista</label>
       <div class="codebox">${esc(code)}</div>
       <button class="ghost sm" data-a="copyCode" data-x="${esc(code)}" style="width:100%;margin-bottom:10px">Copiar código</button>
       <label>Link directo para invitados</label>
@@ -793,11 +937,27 @@ function ownerStepContent(data, code, guestLink, step){
     </div>
     <div class="card" style="text-align:center">
       <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 QR para el evento</p>
-      <p style="font-size:.75rem;color:var(--muted);margin:0 0 12px">Mostralo en el evento — quien no tenga el link lo escanea y entra directo.</p>
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=1a3d28&bgcolor=ffffff&data=${encodeURIComponent(guestLink)}"
-           style="border:3px solid var(--accent);border-radius:12px;width:180px;height:180px;display:block;margin:0 auto 10px"
-           alt="QR de la lista">
-      <p style="font-size:.72rem;color:var(--muted);margin:0">Tocá para guardar la imagen del QR</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 14px">Mostralo en el evento — quien no tenga el link lo escanea y entra directo.</p>
+
+      <!-- Tarjetita imprimible -->
+      <div id="qrCard" style="display:inline-block;background:#fff;border:2px solid var(--accent);border-radius:16px;padding:20px 24px;margin-bottom:14px">
+        <p style="margin:0 0 2px;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Lista de regalos de</p>
+        <p style="margin:0 0 12px;font-size:1.1rem;font-weight:800;color:#1b4332">${esc(data.owner)}</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&color=1a3d28&bgcolor=ffffff&data=${encodeURIComponent(guestLink)}"
+             style="width:180px;height:180px;display:block;margin:0 auto 12px;border-radius:8px"
+             alt="QR de la lista">
+        <p style="margin:0 0 2px;font-size:.78rem;color:var(--muted)">Escaneá para ver y elegir regalos</p>
+        <p style="margin:0 0 6px;font-size:.7rem;color:var(--muted)">Código: <b>${esc(code)}</b></p>
+        <p style="margin:0;font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.03em">elregalo.com.ar</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:8px">
+        <button data-a="downloadQR" data-x="${esc(code)}" data-y="${esc(data.owner)}"
+          style="padding:10px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:.82rem;cursor:pointer;font-weight:600">
+          ⬇️ Descargar
+        </button>
+
+      </div>
     </div>
     <div class="card" style="background:#f0f7f0;border-color:var(--accent)">
       <h3 style="margin:0 0 8px;color:#1b4332">🚀 Compartir la lista</h3>
@@ -821,7 +981,8 @@ function ownerStepContent(data, code, guestLink, step){
 async function renderOwner(code, step){
   step = step || _ownerStep || 1;
   _ownerStep = step;
-  const data=await sGet('ev:'+code);
+  // Siempre leer fresco de Supabase para el organizador
+  const data=await sGetFresh('ev:'+code);
   if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
   if(isExpired(data)){render(`<div class="card" style="text-align:center;padding:24px"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><h2 style="margin:0 0 8px;color:var(--accent)">Esta lista expiró</h2><p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">Las listas duran 37 días y se borran automáticamente.</p><button data-a="home">Volver al inicio</button></div>`);return;}
   const BASE_URL='https://elregalo.com.ar/';
@@ -1107,9 +1268,7 @@ async function addGift(code){
     if(priceField){priceField.focus();priceField.style.borderColor='#e74c3c';}
     return;
   }
-  if(allowMoney&&!data.alias){
-    if(!confirm('⚠️ Habilitaste "Regalar el valor estimado" pero no cargaste tu alias/CBU.\n\nSin alias nadie puede transferirte. ¿Querés agregarlo después en Mis datos?\n\nTocá Aceptar para continuar igual, o Cancelar para cargarlo primero.')){return;}
-  }
+
   const giftImg=window._pendingGiftImg||null;
   window._pendingGiftImg=null;
   window._pendingLinkImg=null;
@@ -1149,6 +1308,9 @@ async function addGift(code){
 async function deleteGift(code,gid){
   const data=await sGet('ev:'+code);
   if(!data)return;
+  const g=data.gifts.find(x=>x.id===gid);
+  const nombre=g?g.name:'este regalo';
+  if(!confirm('¿Querés eliminar "'+nombre+'" de tu lista?\n\nEsta acción no se puede deshacer.')) return;
   data.gifts=data.gifts.filter(g=>g.id!==gid);
   await sSet('ev:'+code,data);
   renderOwner(code);
@@ -1158,6 +1320,8 @@ async function freeGift(code,gid){
   const data=await sGet('ev:'+code);
   if(!data)return;
   const g=data.gifts.find(x=>x.id===gid);
+  const nombre=g?g.name:'este regalo';
+  if(!confirm('¿Querés liberar "'+nombre+'"?\n\nSe va a marcar como disponible y cualquier invitado podrá elegirlo de nuevo.')) return;
   if(g){g.claimedBy=null;g.claimedType=null;g.claimedCity=null;g.claimedConfirmed=false;}
   await sSet('ev:'+code,data);
   renderOwner(code);
@@ -1184,7 +1348,7 @@ async function renderGuest(code){
     `);
     return;
   }
-  const data=await sGet('ev:'+code);
+  const data=await sGetGuest('ev:'+code);
   if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
   if(isEventPast(data)&&!isInGrace(data)&&!isExpired(data)){
     render(`<div class="card" style="text-align:center;padding:24px">
@@ -1374,66 +1538,26 @@ function parseAmount(input){
 }
 
 async function giftMoney(code,gid){
-  // Cerrar cualquier modal previo (ej: pickGift) antes de abrir este
-  document.querySelectorAll('.modal-bg').forEach(m=>m.remove());
-  const data=await sGet('ev:'+code);
+  const data=await sGetGuest('ev:'+code);
   const g=data&&data.gifts.find(x=>x.id===gid);
-  if(!data||!g||!data.alias)return;
-  const modal=document.createElement('div');
-  modal.className='modal-bg';
-  modal.id='moneyModal';
-  // Calcular total aportado
-  const donations = (data.moneyDonations||[]).filter(d=>d.giftId===gid);
-  const totalDonated = donations.reduce((sum,d)=>sum+(parseFloat(d.amountNum)||0),0);
-  const priceNum = g.price ? parseArgNum(g.price) : 0;
-  const remaining = priceNum>0 ? Math.max(0, priceNum-totalDonated) : 0;
-
-  modal.innerHTML=`<div class="modal">
-    <h3>💸 Aportar para: ${esc(g.name)}</h3>
-    ${g.price?`
-      <div style="background:#fff3cd;border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">
-        <p style="margin:0 0 4px;font-size:.78rem;color:var(--muted)">Valor estimado del regalo</p>
-        <p style="margin:0;font-size:1.1rem;font-weight:800">${esc(g.price)}</p>
-        ${totalDonated>0?`
-          <div style="margin-top:8px;background:#fff;border-radius:6px;padding:6px">
-            <p style="margin:0 0 4px;font-size:.75rem;color:var(--accent)">💚 Ya aportaron: <b>$${totalDonated.toLocaleString('es-AR')}</b></p>
-            ${remaining>0?`<p style="margin:0;font-size:.75rem;color:#c0392b">Falta: <b>$${remaining.toLocaleString('es-AR')}</b></p>`:'<p style="margin:0;font-size:.75rem;color:var(--accent)">✅ ¡El regalo ya está cubierto!</p>'}
-          </div>`:''}
-      </div>`:''}
-    <div style="background:#f0f7f0;border:2px solid var(--accent);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
-      ${data.aliasTitular?`<p style="margin:0 0 2px;font-size:.85rem;font-weight:600">${esc(data.aliasTitular)}</p>`:''}
-      <p style="margin:0 0 4px;font-size:.75rem;color:var(--muted)">Alias de ${esc(data.owner)}</p>
-      <p style="font-size:1.1rem;font-weight:800;letter-spacing:1px;margin:0 0 10px">💳 ${esc(data.alias)}</p>
-      <button data-a="copyText" data-x="${esc(data.alias)}"
-        style="width:100%;background:var(--accent);color:#fff;border:none;padding:10px;border-radius:8px;font-size:.88rem;cursor:pointer">
-        📋 Copiar alias
-      </button>
+  if(!data||!g)return;
+  const m=document.createElement('div');
+  m.className='modal-bg';
+  m.innerHTML=`<div class="modal">
+    <h3 style="margin:0 0 12px;color:#1b4332">💸 Aportar al valor estimado</h3>
+    <div style="background:#f0f7f0;border:1.5px solid var(--accent);border-radius:12px;padding:16px;text-align:center;margin-bottom:14px">
+      <p style="margin:0 0 8px;font-size:.88rem;color:var(--muted)">Valor estimado del regalo</p>
+      <p style="font-size:1.4rem;font-weight:800;color:#1b4332;margin:0">${g.price?'$'+Number(g.price).toLocaleString('es-AR'):'-'}</p>
     </div>
-    <p style="font-size:.82rem;font-weight:600;margin:0 0 6px">¿Ya hiciste la transferencia?</p>
-    <p style="font-size:.78rem;color:var(--muted);margin:0 0 8px">Indicá cuánto aportaste y tu nombre.</p>
-    <label style="font-size:.78rem">Monto que transferiste</label>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <div style="display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;flex-shrink:0">
-        <button id="btnARS" data-a="setCurrency" data-x="ARS"
-          style="padding:8px 12px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:.85rem;cursor:pointer">ARS</button>
-        <button id="btnUSD" data-a="setCurrency" data-x="USD"
-          style="padding:8px 12px;background:#fff;color:var(--muted);border:none;font-weight:700;font-size:.85rem;cursor:pointer">USD</button>
-      </div>
-      <input id="moneyAmount" placeholder="Ej: 50.000" style="flex:1"
-        oninput="formatAmount(this)">
+    <div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px">
+      <p style="margin:0 0 6px;font-size:.92rem;font-weight:700;color:#1a3d28">¿Cómo hacés el aporte?</p>
+      <p style="margin:0;font-size:.85rem;color:var(--muted);line-height:1.6">
+        Coordiná tu aporte escribiéndole directo a <b>${esc(data.owner)}</b> y pedile los datos para transferirle. ¡Así te asegurás que llegue! 😉
+      </p>
     </div>
-    <input type="hidden" id="moneyCurrency" value="ARS">
-    <label style="font-size:.78rem">Tu nombre</label>
-    <input id="moneyGifterName" placeholder="Tu nombre" value="${esc(guestName)}" style="margin-bottom:10px">
-    <button data-a="confirmMoneyGift" data-x="${esc(code)}" data-y="${esc(g.id)}"
-      style="width:100%;background:var(--accent);padding:12px;font-size:.95rem">
-      ✅ Confirmar que ya transferí
-    </button>
-    <button data-a="closeModal" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--line)">
-      Cerrar
-    </button>
+    <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">← Volver</button>
   </div>`;
-  document.body.appendChild(modal);
+  document.body.appendChild(m);
 }
 
 async function confirmMoneyGift(code,gid){
@@ -1491,8 +1615,7 @@ async function pickGift(code,gid){
   const onlyPhys=g.allowPhys&&!g.allowDig;
   const onlyDig=g.allowDig&&!g.allowPhys;
   // Solo mostrar opción de dinero si tiene precio Y allowMoney Y alias cargado
-  const canOfferMoney=!!(g.allowMoney&&data.alias&&g.price);
-  const sp=getSponsor(g.name);
+  const canOfferMoney=!!(g.allowMoney&&g.price);
   const modal=document.createElement('div');
   modal.className='modal-bg';
   modal.innerHTML=`
@@ -1500,16 +1623,7 @@ async function pickGift(code,gid){
       ${g.img?`<div style="text-align:center;margin-bottom:10px"><img src="${esc(g.img)}" style="max-width:180px;max-height:140px;border-radius:12px;object-fit:cover;border:2px solid var(--accent)"></div>`:''}
       <h3>${esc(g.name)}</h3>
       ${g.price?`<p style="margin:0 0 8px;font-size:.82rem;background:#fff3cd;border-radius:6px;padding:6px 10px">💰 Precio estimado: <b>${esc(g.price)}</b></p>`:''}
-      ${g.digitalReceiveContact&&g.allowDig?`<div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:8px;padding:10px;margin-bottom:8px">
-        <p style="margin:0 0 4px;font-size:.82rem;font-weight:700;color:#1a3d28">📧 Enviá el regalo digital a:</p>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <p style="margin:0;font-size:.92rem;font-weight:600;flex:1">${esc(g.digitalReceiveContact)}</p>
-          <button data-a="copyText" data-x="${esc(g.digitalReceiveContact)}"
-            style="padding:6px 12px;font-size:.75rem;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap">
-            📋 Copiar
-          </button>
-        </div>
-      </div>`:''}
+
       ${sp?`<div style="background:#f0f9f4;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px"><div><div style="font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.05em;margin-bottom:2px">TIENDA SUGERIDA</div><div style="font-size:.88rem;font-weight:700;color:#1a3d28">${sp.name}</div><div style="font-size:.75rem;color:var(--muted)">${sp.desc}</div></div><a href="${sp.url}" target="_blank" style="background:var(--accent);color:#fff;border-radius:20px;padding:6px 14px;font-size:.75rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">Ver tienda →</a></div>`:''}
 
       ${canOfferMoney?`
@@ -1517,7 +1631,7 @@ async function pickGift(code,gid){
         <p style="font-size:.85rem;font-weight:600;color:#333;margin:0 0 10px">¿Cómo querés regalarlo?</p>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button data-a="chooseMoneyGift" data-x="${esc(code)}" data-y="${esc(gid)}"
-            style="text-align:left;padding:12px 14px;border:1.5px solid var(--accent);border-radius:10px;background:#f0f9f4;cursor:pointer;color:#1a3d28">
+            style="text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fafafa;cursor:pointer;color:#1a3d28">
             <b style="color:#1a3d28">💸 Regalar el valor estimado</b><br>
             <span style="font-size:.78rem;color:var(--muted)">Transferís lo que podás al alias del organizador</span>
           </button>
@@ -1745,15 +1859,28 @@ async function confirmPick(code,gid){
     const aliasSection=buildAliasSection(data,g);
     const occData=OCCASIONS[data.occasion]||OCCASIONS['cumple'];
     const deliveryLabel=occData.deliveryLabel||'al evento';
-    const isDigital=isDigitalGift(g.name)||g.allowDig&&!g.allowPhys;
-    const showDelivery=!isDigital;
+    const isDigitalByName=isDigitalGift(g.name);
+    // Mostrar solo la sección que corresponde al tipo que eligió el usuario
+    const showPhysDelivery=g.allowPhys && type==='físico';
+    const showDigDelivery=(g.allowDig||isDigitalByName) && type==='digital';
     window._deliveryInHand=null;
+    window._guestDigitalContact=null;
     const area=document.getElementById('pickLinks');
     if(area) area.innerHTML=`
+      ${type==='digital'?`
+      <div style="background:#e8f4fd;border:2px solid #aed6f1;border-radius:12px;padding:16px;text-align:center;margin-bottom:4px">
+        <div style="font-size:1.8rem;margin-bottom:6px">📧</div>
+        <p style="margin:0 0 6px;font-size:.95rem;font-weight:700;color:#1a3d28">¡Reservado! Es un regalo digital</p>
+        <p style="margin:0;font-size:.85rem;color:var(--muted);line-height:1.6">
+          Coordiná el envío escribiéndole directo a <b>${esc(data.owner)}</b> y ponete de acuerdo para hacerle llegar el regalo. 😉
+        </p>
+      </div>
+      ${links.length?`<div class="buy-links" style="margin-top:10px">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid #5c7a52;':''}">${l.label} ↗</a>`).join('')}</div>`:''}
+      `:`
       <p style="font-size:.83rem;color:var(--green);margin:10px 0 4px">✓ Reservado provisoriamente. Dónde buscarlo:</p>
       <div class="buy-links">${links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="${l.highlight?'background:#d4edda;font-weight:600;border:1px solid #5c7a52;':''}">${l.label} ↗</a>`).join('')}</div>
-      ${showDelivery?`<div style="background:#f0f9f4;border:1px solid #c8e6d4;border-radius:12px;padding:14px;margin-top:12px" id="deliverySection">
-        <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1a3d28">¿Como vas a entregarlo?</p>
+      ${showPhysDelivery?`<div style="background:#f0f9f4;border:1px solid #c8e6d4;border-radius:12px;padding:14px;margin-top:12px" id="physDeliverySection">
+        <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1a3d28">📦 Entrega física — ¿cómo lo entregás?</p>
         <div style="display:flex;gap:8px">
           <button id="btnDelivHand" data-a="setDelivery" data-x="hand"
             style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--accent);font-size:.82rem;cursor:pointer;background:transparent;color:var(--accent);font-weight:600">
@@ -1761,11 +1888,12 @@ async function confirmPick(code,gid){
           </button>
           <button id="btnDelivShip" data-a="setDelivery" data-x="ship"
             style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--accent);font-size:.82rem;cursor:pointer;background:transparent;color:var(--accent);font-weight:600">
-            Te lo envio
+            Te lo envío
           </button>
         </div>
-        <p id="deliveryError" style="display:none;color:#c0392b;font-size:.78rem;margin:6px 0 0">Por favor elegí cómo vas a entregar el regalo.</p>
+        <p id="deliveryError" style="display:none;color:#c0392b;font-size:.78rem;margin:6px 0 0">Por favor elegí cómo vas a entregarlo.</p>
       </div>`:''}
+      `}
 
       <div style="background:#fff8e1;border:2px solid #f0c040;border-radius:12px;padding:16px;margin-top:14px">
         <p style="margin:0 0 6px;font-size:1rem;font-weight:700">⚠️ ¿Confirmás este regalo?</p>
@@ -1802,18 +1930,24 @@ async function confirmPick(code,gid){
 
 async function finalConfirm(code,gid){
   // Validar entrega si aplica
-  const delivSection=document.getElementById('deliverySection');
-  if(delivSection&&window._deliveryInHand===null){
+    // Validar entrega física si aplica
+  const physSection=document.getElementById('physDeliverySection');
+  if(physSection&&window._deliveryInHand===null){
     const errEl=document.getElementById('deliveryError');
     if(errEl) errEl.style.display='block';
+    physSection.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
+  // Confirmación antes de proceder
+  if(!confirm('¿Confirmás que vas a regalar este artículo?\n\nUna vez confirmado no podés cancelarlo. Si querés revisar algo, tocá Cancelar.')) return;
+
   try{
     const data=await sGet('ev:'+code);
     const g=data&&data.gifts.find(x=>x.id===gid);
     if(!g||!g.claimedBy){document.querySelector('.modal-bg')?.remove();renderGuest(code);return;}
     g.claimedConfirmed=true;
     if(window._deliveryInHand!==null) g.deliveryInHand=window._deliveryInHand;
+    if(window._guestDigitalContact) g.guestDigitalContact=window._guestDigitalContact;
 
     await sSet('ev:'+code,data);
     const area=document.getElementById('pickLinks');
@@ -1835,24 +1969,11 @@ async function finalConfirm(code,gid){
       </div>` : '';
     // Sección de pedido de dirección anónima (sin revelar quién pide)
     const requestSection=`
-      <div style="margin-top:12px;border:1.5px solid var(--line);border-radius:12px;padding:14px">
-        <p style="margin:0 0 6px;font-size:.92rem;font-weight:700">📦 ¿Querés enviarlo físicamente?</p>
-        <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);line-height:1.5">
-          Dejá tu nombre y contacto y elegí cómo querés enviar el regalo.<br>
-          El organizador va a ver tu pedido y va a contactarte para darte la dirección.
+      <div style="margin-top:12px;background:#f0f7f0;border:1.5px solid #c8e6d4;border-radius:12px;padding:14px;text-align:center">
+        <p style="margin:0 0 6px;font-size:.92rem;font-weight:700;color:#1b4332">📦 ¿Querés enviarlo a su domicilio?</p>
+        <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.5">
+          Coordiná el envío escribiéndole directo a <b>${esc(data.owner)}</b> para acordar cómo hacerlo llegar. 😉
         </p>
-        <label style="font-size:.78rem">Tu nombre y contacto — teléfono, WhatsApp, etc. (obligatorio)</label>
-        <input id="reqContact" placeholder="Ej: María — +54 11 1234-5678" style="margin-bottom:10px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||home"
-            style="padding:12px 8px;font-size:.82rem;border-radius:10px">
-            🏠 Enviar al domicilio
-          </button>
-          <button data-a="sendAddrRequest" data-x="${esc(code)}" data-y="${esc(g.id)}|||post"
-            style="padding:12px 8px;font-size:.82rem;border-radius:10px;background:#5c7a52">
-            📮 Enviar al correo postal
-          </button>
-        </div>
       </div>`;
     if(area){
       area.innerHTML=`
@@ -1870,7 +1991,7 @@ async function finalConfirm(code,gid){
           </p>
         </div>
         ${notifySection}
-        ${(window._deliveryInHand===true||g.allowDig&&!g.allowPhys||isDigitalGift(g.name))?'':requestSection}
+        ${(window._deliveryInHand===true||window._pickType==='digital'||g.allowDig&&!g.allowPhys||isDigitalGift(g.name))?'':requestSection}
       `;
     }
     const finalBtn=document.getElementById('finalConfirmBtn');
@@ -1969,16 +2090,6 @@ function showSaved(btnSelector, msg='✅ Guardado'){
   setTimeout(()=>{btn.textContent=orig;btn.style.background=origBg;btn.disabled=false;},2500);
 }
 
-async function saveAlias(code){
-  const alias=((document.getElementById('aliasInput')||{}).value||'').trim();
-  const titular=((document.getElementById('aliasTitular')||{}).value||'').trim();
-  const data=await sGet('ev:'+code);
-  if(!data)return;
-  data.alias=alias||null;
-  data.aliasTitular=titular||null;
-  await sSet('ev:'+code,data);
-  await renderOwner(code,1);
-}
 
 async function saveAddress(type,code){
   const prefix=type==='home'?'home':'post';
@@ -2307,33 +2418,9 @@ async function deleteList(code){
   renderHome();
 }
 
-// ── SPONSORS (publicidad contextual) ──
-// Para agregar un comercio adherido: {name, desc, url, keywords:[...palabras clave...]}
-const SPONSORS = [
-  {name:'PharmacyCity',desc:'Perfumería y cosmética',url:'https://www.pharmacycity.com.ar',
-   keywords:['perfume','colonia','fragancia','desodorante','crema','maquillaje','cosmetico','cosmetica','labial','serum','locion','esmalte','shampoo','jabon','cuidado personal','beauty','tratamiento']},
-  {name:'Librería',desc:'Libros y papelería',url:'https://www.mercadolibre.com.ar/libros',
-   keywords:['libro','novela','cuento','lectura','literatura','poesia','enciclopedia','comic','manga','agenda','cuaderno','papeleria']},
-  {name:'Tienda de tecnología',desc:'Electrónica y gadgets',url:'https://www.mercadolibre.com.ar/electronica',
-   keywords:['celular','notebook','tablet','computadora','auricular','parlante','smartwatch','camara','drone','consola','televisor','tele','pantalla','monitor','teclado','mouse','heladera','lavarropas','aire acondicionado','microondas','licuadora','cafetera']},
-  {name:'Juguetería',desc:'Juguetes y juegos',url:'https://www.mercadolibre.com.ar/juguetes',
-   keywords:['juguete','muñeca','auto de juguete','lego','puzzle','rompecabezas','peluche','juego de mesa','muñeco','patineta']},
-  {name:'Bazar del hogar',desc:'Artículos para el hogar',url:'https://www.mercadolibre.com.ar/hogar',
-   keywords:['vajilla','cubierto','olla','sarten','bateria de cocina','fuente','plato','taza','jarra','organizador','cesto','alfombra','lampara','espejo','mantel','sabana','toalla','almohadon','edredon','bazar']},
-  {name:'Tienda deportiva',desc:'Artículos deportivos',url:'https://www.mercadolibre.com.ar/deportes',
-   keywords:['bicicleta','raqueta','yoga','pesas','running','zapatillas deporte','caminadora','pelota futbol','pelota basket','guante','casco','patines','fitness','gym','deporte']},
-  {name:'Tienda de ropa',desc:'Indumentaria y accesorios',url:'https://www.mercadolibre.com.ar/ropa',
-   keywords:['ropa','camisa','remera','pantalon','jean','vestido','zapatillas','zapatos','cartera','bolso','mochila','cinturon','bufanda','gorro','guantes','pijama','medias','ropa interior','campera','abrigo']}
-];
-
-function getSponsor(giftName){
-  if(!giftName) return null;
-  const lower = giftName.toLowerCase();
-  return SPONSORS.find(s => s.keywords.some(k => lower.includes(k))) || null;
-}
 
 // ── PRÓXIMAMENTE (cambiar a false cuando esté listo) ──
-const COMING_SOON = true;
+const COMING_SOON = false;
 
 // ── INICIO ──
 (async function init(){
@@ -2379,5 +2466,7 @@ window.addEventListener('hashchange',function(){
   else renderHome();
 });
 </script>
+</body>
+
 </body>
 </html>
