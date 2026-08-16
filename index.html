@@ -1540,23 +1540,66 @@ async function giftMoney(code,gid){
   const data=await sGetGuest('ev:'+code);
   const g=data&&data.gifts.find(x=>x.id===gid);
   if(!data||!g)return;
+  // Calcular total aportado hasta ahora
+  const totalAportado=g.contributions?g.contributions.reduce((s,c)=>s+(c.amount||0),0):0;
+  const precio=Number(g.price)||0;
+  const pct=precio>0?Math.min(100,Math.round(totalAportado/precio*100)):0;
+  const falta=Math.max(0,precio-totalAportado);
   const m=document.createElement('div');
   m.className='modal-bg';
   m.innerHTML=`<div class="modal">
     <h3 style="margin:0 0 12px;color:#1b4332">💸 Aportar al valor estimado</h3>
-    <div style="background:#f0f7f0;border:1.5px solid var(--accent);border-radius:12px;padding:16px;text-align:center;margin-bottom:14px">
-      <p style="margin:0 0 8px;font-size:.88rem;color:var(--muted)">Valor estimado del regalo</p>
-      <p style="font-size:1.4rem;font-weight:800;color:#1b4332;margin:0">${g.price?'$'+Number(g.price).toLocaleString('es-AR'):'-'}</p>
+    <div style="background:#f0f7f0;border:1.5px solid var(--accent);border-radius:12px;padding:16px;margin-bottom:14px">
+      <p style="margin:0 0 4px;font-size:.85rem;color:var(--muted);text-align:center">Valor estimado del regalo</p>
+      <p style="font-size:1.4rem;font-weight:800;color:#1b4332;margin:0 0 10px;text-align:center">${precio?'$'+precio.toLocaleString('es-AR'):'-'}</p>
+      ${precio?`
+      <div style="background:#e0e0e0;border-radius:20px;height:12px;margin-bottom:6px;overflow:hidden">
+        <div style="background:var(--accent);height:100%;width:${pct}%;border-radius:20px;transition:width .4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)">
+        <span>Aportado: $${totalAportado.toLocaleString('es-AR')} (${pct}%)</span>
+        <span>Falta: $${falta.toLocaleString('es-AR')}</span>
+      </div>`:''}
     </div>
-    <div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px">
-      <p style="margin:0 0 6px;font-size:.92rem;font-weight:700;color:#1a3d28">¿Cómo hacés el aporte?</p>
-      <p style="margin:0;font-size:.85rem;color:var(--muted);line-height:1.6">
-        Coordiná tu aporte escribiéndole directo a <b>${esc(data.owner)}</b> y pedile los datos para transferirle. ¡Así te asegurás que llegue! 😉
+    <div style="margin-bottom:14px">
+      <label style="font-size:.85rem;font-weight:700;color:#1b4332;display:block;margin-bottom:6px">¿Cuánto querés aportar?</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.1rem;font-weight:700;color:#1b4332">$</span>
+        <input id="montoAporte" type="number" min="1" placeholder="Ej: 5000" style="flex:1;font-size:1rem;font-weight:700">
+      </div>
+      ${falta>0?`<p style="font-size:.75rem;color:var(--muted);margin:6px 0 0">Falta cubrir $${falta.toLocaleString('es-AR')} del total</p>`:''}
+    </div>
+    <div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
+      <p style="margin:0 0 4px;font-size:.85rem;font-weight:700;color:#1a3d28">¿Cómo hacés la transferencia?</p>
+      <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.5">
+        Coordiná con <b>${esc(data.owner)}</b> — pedile el alias o CBU directamente. ¡Así te asegurás que llegue! 😉
       </p>
     </div>
+    <button id="btnConfirmarAporte" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;margin-bottom:8px">Confirmar mi aporte</button>
     <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">← Volver</button>
   </div>`;
   document.body.appendChild(m);
+  document.getElementById('btnConfirmarAporte').addEventListener('click', async()=>{
+    const monto=Number(document.getElementById('montoAporte').value||0);
+    if(!monto||monto<1){alert('Ingresá el monto que querés aportar.');return;}
+    if(!confirm('¿Confirmás un aporte de $'+monto.toLocaleString('es-AR')+'?\n\nRecordá coordinar la transferencia directamente con '+data.owner+'.')) return;
+    // Guardar el aporte
+    const fullData=await sGet('ev:'+code);
+    const gift=fullData&&fullData.gifts.find(x=>x.id===gid);
+    if(!gift)return;
+    if(!gift.contributions) gift.contributions=[];
+    gift.contributions.push({amount:monto,name:guestName||'Anónimo',date:Date.now()});
+    // Marcar como reservado si no lo está
+    if(!gift.claimedBy){
+      gift.claimedBy=guestName||'Anónimo';
+      gift.claimedType='money';
+      gift.claimedConfirmed=true;
+    }
+    await sSet('ev:'+code,fullData);
+    m.remove();
+    alert('✓ ¡Aporte registrado! Recordá hacer la transferencia directamente a '+data.owner+'.');
+    renderGuest(code);
+  });
 }
 
 async function confirmMoneyGift(code,gid){
