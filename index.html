@@ -935,8 +935,8 @@ function ownerStepContent(data, code, guestLink, step){
       <button class="ghost sm" data-a="copyLink" data-x="${esc(guestLink)}" style="width:100%;margin-top:6px">Copiar link</button>
     </div>
     <div class="card" style="text-align:center">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 QR para el evento</p>
-      <p style="font-size:.75rem;color:var(--muted);margin:0 0 14px">Mostralo en el evento — quien no tenga el link lo escanea y entra directo.</p>
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 Descargá y compartí tu QR</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 14px">Descargalo, agregá tu alias si querés recibir aportes, y mandalo por WhatsApp, Instagram o donde quieras. Quien lo escanea entra directo a tu lista.</p>
 
       <!-- Tarjetita imprimible -->
       <div id="qrCard" style="display:inline-block;background:#fff;border:2px solid var(--accent);border-radius:16px;padding:20px 24px;margin-bottom:14px">
@@ -1045,26 +1045,21 @@ function moneyDonationsSection(data){
   return `
     <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
       <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1b4332">
-        💸 Transferencias recibidas (${donations.length})
+        💸 Aportes recibidos (${donations.length})
       </p>
-      ${(()=>{
-        // Agrupar por regalo
-        const byGift={};
-        donations.forEach(d=>{
-          if(!byGift[d.giftId]) byGift[d.giftId]={name:d.giftId,giftName:d.giftName,total:0,list:[]};
-          byGift[d.giftId].total+=(d.amountNum||0);
-          byGift[d.giftId].list.push(d);
-        });
-        return Object.values(byGift).map(g=>`
-          <div style="border:1px solid #a8d5b5;border-radius:10px;padding:12px;margin-bottom:8px;background:#fff">
-            <p style="margin:0 0 6px;font-size:.88rem;font-weight:700">🎁 ${esc(g.giftName)}</p>
-            ${g.list.map(d=>`
-              <p style="margin:0 0 2px;font-size:.8rem;color:#333">
-                • ${esc(d.gifterName)} aportó <b>${esc(d.amount)}</b>
-              </p>`).join('')}
-            ${g.total>0?`<p style="margin:6px 0 0;font-size:.82rem;font-weight:700;color:var(--accent)">Total recibido: $${g.total.toLocaleString('es-AR')}</p>`:''}
-          </div>`).join('');
-      })()}
+      <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted)">Confirmá con cada persona que la transferencia te llegó correctamente.</p>
+      ${donations.slice().reverse().map(d=>`
+        <div style="border:1px solid #a8d5b5;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <p style="margin:0 0 2px;font-size:.85rem;font-weight:700;color:#1b4332">
+              👤 ${esc(d.gifterName||d.name||'Anónimo')}
+            </p>
+            <p style="margin:0;font-size:.78rem;color:#555">
+              aportó <b>${esc(d.amount||'$'+(d.amountNum||0))}</b> para <b>${esc(d.giftName||'un regalo')}</b>
+            </p>
+          </div>
+          <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">${new Date(d.date).toLocaleDateString('es-AR')}</span>
+        </div>`).join('')}
     </div>`;
 }
 
@@ -1569,7 +1564,9 @@ async function giftMoney(code,gid){
       <label style="font-size:.85rem;font-weight:700;color:#1b4332;display:block;margin-bottom:6px">¿Cuánto querés aportar?</label>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:1.2rem;font-weight:700;color:#1b4332">$</span>
-        <input id="montoAporte" type="number" min="1" placeholder="Ej: 5000" style="flex:1;font-size:1rem;font-weight:700">
+        <input id="montoAporte" type="text" inputmode="numeric" placeholder="Ej: 50.000"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"
+          style="flex:1;font-size:1rem;font-weight:700">
       </div>
       ${falta>0&&precio>0?`<p style="font-size:.75rem;color:var(--muted);margin:6px 0 0">Podés aportar lo que quieras — falta cubrir $${falta.toLocaleString('es-AR')}</p>`:''}
     </div>
@@ -1584,18 +1581,20 @@ async function giftMoney(code,gid){
   </div>`;
   document.body.appendChild(m);
   document.getElementById('btnConfirmarAporte').addEventListener('click', async()=>{
-    const monto=Number((document.getElementById('montoAporte').value||'').replace(/[^0-9]/g,''));
+    const monto=Number((document.getElementById('montoAporte').value||'').replace(/\./g,'').replace(/[^0-9]/g,''));
     if(!monto||monto<1){alert('Ingresá el monto que querés aportar.');return;}
     if(!confirm('¿Confirmás un aporte de $'+monto.toLocaleString('es-AR')+'?\n\nRecordá coordinar la transferencia directamente con '+data.owner+'.')) return;
     // Guardar en moneyDonations (formato correcto para la barra)
     const fullData=await sGet('ev:'+code);
     if(!fullData) return;
     if(!fullData.moneyDonations) fullData.moneyDonations=[];
+    const giftForName=fullData.gifts.find(x=>x.id===gid);
     fullData.moneyDonations.push({
       giftId:gid,
+      giftName:giftForName?giftForName.name:'Regalo',
       amountNum:monto,
       amount:'$'+monto.toLocaleString('es-AR'),
-      name:guestName||'Anónimo',
+      gifterName:guestName||'Anónimo',
       date:Date.now()
     });
     await sSet('ev:'+code,fullData);
