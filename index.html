@@ -189,7 +189,6 @@ async function lookupBarcode(code){
 
 async function openBarcodeScanner(){
   return new Promise((resolve)=>{
-    const uid_scan='scan-'+Math.random().toString(36).slice(2);
     const m=document.createElement('div');
     m.className='modal-bg';
     m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px">
@@ -197,54 +196,59 @@ async function openBarcodeScanner(){
         <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
         <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código del producto</p>
       </div>
-      <div id="${uid_scan}" style="width:100%"></div>
-      <div style="padding:8px 16px 14px">
+      <div style="position:relative;background:#000;min-height:220px">
+        <video id="scanVideo" style="width:100%;max-height:260px;display:block" autoplay muted playsinline></video>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:100px;border:3px solid #4ade80;border-radius:8px;pointer-events:none"></div>
+      </div>
+      <div style="padding:10px 16px 14px">
         <p id="scanStatus" style="font-size:.78rem;color:#555;text-align:center;margin:0 0 8px">Iniciando cámara...</p>
         <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
       </div>
     </div>`;
     document.body.appendChild(m);
 
-    let resolved=false;
-    const done=(val)=>{
-      if(resolved)return; resolved=true;
-      try{if(w.html5Scanner)w.html5Scanner.clear().catch(()=>{});}catch(e){}
-      m.remove(); resolve(val);
+    let stream=null, stopped=false;
+    const setMsg=t=>{const el=document.getElementById('scanStatus');if(el)el.textContent=t;};
+
+    const stop=()=>{
+      stopped=true;
+      if(stream) stream.getTracks().forEach(t=>t.stop());
+      m.remove();
     };
 
-    document.getElementById('btnCancelScan').addEventListener('click',()=>done(null));
+    document.getElementById('btnCancelScan').addEventListener('click',()=>{stop();resolve(null);});
 
-    // Cargar html5-qrcode si no está
-    const initScanner=()=>{
-      try{
-        w.html5Scanner=new Html5QrcodeScanner(uid_scan,
-          {fps:10, qrbox:{width:260,height:120},
-           formatsToSupport:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-           rememberLastUsedCamera:true,
-           supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA]},
-          false);
-        w.html5Scanner.render(
-          (decodedText)=>{
-            document.getElementById('scanStatus').textContent='✓ Código: '+decodedText+' — buscando...';
-            done(decodedText);
-          },
-          ()=>{}
-        );
-        document.getElementById('scanStatus').textContent='📡 Apuntá el código al recuadro...';
-      }catch(e){
-        document.getElementById('scanStatus').textContent='Error: '+e.message;
+    const video=document.getElementById('scanVideo');
+
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(s=>{
+      stream=s; video.srcObject=s; video.play();
+      setMsg('📡 Apuntá el código al recuadro verde...');
+
+      if('BarcodeDetector' in window){
+        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+        const scan=async()=>{
+          if(stopped)return;
+          try{
+            const codes=await detector.detect(video);
+            if(codes.length>0){
+              setMsg('✓ Código: '+codes[0].rawValue);
+              setTimeout(()=>{stop();resolve(codes[0].rawValue);},600);
+              return;
+            }
+          }catch(e){}
+          if(!stopped) setTimeout(scan,200);
+        };
+        video.addEventListener('playing',()=>setTimeout(scan,800),{once:true});
+      } else {
+        setMsg('Tu navegador no soporta escaneo en tiempo real. Usá Chrome en Android o Safari 17+ en iPhone.');
       }
-    };
-
-    if(typeof Html5QrcodeScanner!=='undefined'){
-      initScanner();
-    } else {
-      const s=document.createElement('script');
-      s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-      s.onload=initScanner;
-      s.onerror=()=>{document.getElementById('scanStatus').textContent='No se pudo cargar el escáner. Revisá tu conexión.';};
-      document.head.appendChild(s);
-    }
+    })
+    .catch(()=>{
+      stop();
+      alert('No se pudo acceder a la cámara. Asegurate de dar permiso de cámara al navegador.');
+      resolve(null);
+    });
   });
 }
 
