@@ -142,15 +142,45 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
 
 // ── ESCÁNER DE CÓDIGO DE BARRAS ──
 async function lookupBarcode(code){
+  // Fuente 1: Open Food Facts (alimentos, bebidas, cosméticos)
   try{
     const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const d=await r.json();
-    if(d.status===1&&d.product){
+    if(d.status===1&&d.product&&(d.product.product_name_es||d.product.product_name)){
       const p=d.product;
       return {
-        name: p.product_name_es||p.product_name||p.generic_name||null,
-        brand: p.brands||null,
-        img: p.image_front_url||p.image_url||null,
+        name:(p.product_name_es||p.product_name||'').trim(),
+        brand:(p.brands||'').trim(),
+        img:p.image_front_url||p.image_url||null,
+        source:'Open Food Facts'
+      };
+    }
+  }catch(e){}
+  // Fuente 2: Open Beauty Facts (cosméticos, perfumes, cremas)
+  try{
+    const r=await fetch(`https://world.openbeautyfacts.org/api/v0/product/${code}.json`);
+    const d=await r.json();
+    if(d.status===1&&d.product&&(d.product.product_name_es||d.product.product_name)){
+      const p=d.product;
+      return {
+        name:(p.product_name_es||p.product_name||'').trim(),
+        brand:(p.brands||'').trim(),
+        img:p.image_front_url||null,
+        source:'Open Beauty Facts'
+      };
+    }
+  }catch(e){}
+  // Fuente 3: UPC Item DB (productos generales, electrónica, hogar)
+  try{
+    const r=await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
+    const d=await r.json();
+    if(d.code==='OK'&&d.items&&d.items.length>0){
+      const item=d.items[0];
+      return {
+        name:(item.title||'').trim(),
+        brand:(item.brand||'').trim(),
+        img:item.images&&item.images[0]||null,
+        source:'UPC Item DB'
       };
     }
   }catch(e){}
@@ -161,76 +191,111 @@ async function openBarcodeScanner(){
   return new Promise((resolve)=>{
     const m=document.createElement('div');
     m.className='modal-bg';
-    m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px;max-width:400px">
-      <div style="padding:14px 16px 10px;background:#1d5c40;color:#fff">
-        <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
-        <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código del producto</p>
-      </div>
-      <div id="qr-reader" style="width:100%"></div>
-      <div style="padding:10px 16px">
-        <p id="scanStatus" style="font-size:.78rem;color:#555;text-align:center;margin:0 0 8px">Iniciando cámara...</p>
-        <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
-      </div>
+    m.innerHTML=`<div class="modal">
+      <h3 style="margin:0 0 8px;color:#1b4332">📷 Escanear producto</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
+        Apuntá la cámara al código de barras del producto y sacá una foto. Lo buscamos automáticamente.
+      </p>
+      <input type="file" id="barcodeFile" accept="image/*" capture="environment"
+        style="display:none">
+      <button id="btnOpenCamera" style="width:100%;padding:14px;font-size:1rem;font-weight:700;margin-bottom:10px;background:#1d5c40;color:#fff;border:none;border-radius:10px;cursor:pointer">
+        📸 Abrir cámara
+      </button>
+      <p id="scanMsg" style="font-size:.8rem;color:#555;text-align:center;margin:0 0 10px;min-height:20px"></p>
+      <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
     </div>`;
     document.body.appendChild(m);
 
-    let scanner=null;
-    let resolved=false;
+    const setMsg=txt=>{const el=document.getElementById('scanMsg');if(el)el.textContent=txt;};
 
-    const stop=async()=>{
-      try{ if(scanner) await scanner.stop(); }catch(e){}
-      m.remove();
-    };
+    document.getElementById('btnCancelScan').addEventListener('click',()=>{m.remove();resolve(null);});
 
-    const done=(barcode)=>{
-      if(resolved) return;
-      resolved=true;
-      stop().then(()=>resolve(barcode));
-    };
+    document.getElementById('btnOpenCamera').addEventListener('click',()=>{
+      document.getElementById('barcodeFile').click();
+    });
 
-    document.getElementById('btnCancelScan').addEventListener('click',()=>done(null));
-
-    try{
-      scanner=new Html5Qrcode('qr-reader');
-      scanner.start(
-        {facingMode:'environment'},
-        {fps:10, qrbox:{width:260,height:120}, supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA]},
-        (decodedText)=>{
-          const el=document.getElementById('scanStatus');
-          if(el) el.textContent='✓ Código encontrado — buscando producto...';
-          done(decodedText);
-        },
-        ()=>{}
-      ).then(()=>{
-        const el=document.getElementById('scanStatus');
-        if(el) el.textContent='📡 Apuntá el código de barras al recuadro...';
-      }).catch(err=>{
-        const el=document.getElementById('scanStatus');
-        if(el) el.textContent='No se pudo acceder a la cámara. Verificá los permisos.';
-      });
-    }catch(e){
-      const el=document.getElementById('scanStatus');
-      if(el) el.textContent='Error al iniciar el escáner: '+e.message;
-    }
+    document.getElementById('barcodeFile').addEventListener('change',async(e)=>{
+      const file=e.target.files[0];
+      if(!file) return;
+      setMsg('🔍 Analizando imagen...');
+      try{
+        // Usar la API de barcode lookup via imagen
+        if('BarcodeDetector' in window){
+          const img=await createImageBitmap(file);
+          const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+          const codes=await detector.detect(img);
+          if(codes.length>0){
+            setMsg('✓ Código encontrado: '+codes[0].rawValue);
+            setTimeout(()=>{m.remove();resolve(codes[0].rawValue);},800);
+            return;
+          }
+          setMsg('No se detectó código. Intentá sacar otra foto más cerca y bien enfocada.');
+        } else if(typeof Html5Qrcode!=='undefined'){
+          const result=await Html5Qrcode.scanFile(file,true);
+          setMsg('✓ Código: '+result);
+          setTimeout(()=>{m.remove();resolve(result);},800);
+        } else {
+          setMsg('No se pudo leer el código. Cargando herramienta...');
+          // Cargar html5-qrcode dinámicamente si no está
+          await new Promise(res=>{
+            const s=document.createElement('script');
+            s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+            s.onload=res; document.head.appendChild(s);
+          });
+          try{
+            const result=await Html5Qrcode.scanFile(file,true);
+            setMsg('✓ Código: '+result);
+            setTimeout(()=>{m.remove();resolve(result);},800);
+          }catch(e2){
+            setMsg('No se detectó código. Intentá sacar otra foto más cerca.');
+          }
+        }
+      }catch(err){
+        setMsg('No se detectó código. Intentá sacar otra foto más cerca y bien enfocada.');
+      }
+    });
   });
 }
 
 async function scanAndFill(){
   const barcode=await openBarcodeScanner();
   if(!barcode) return;
-  const nameEl=document.getElementById('newName');
-  const imgEl=document.getElementById('newLink');
   const statusEl=document.getElementById('scanResult');
-  if(statusEl) statusEl.textContent='🔍 Buscando producto...';
+  if(statusEl) statusEl.textContent='🔍 Buscando en bases de datos...';
   const product=await lookupBarcode(barcode);
   if(product&&product.name){
-    if(nameEl) nameEl.value=(product.brand?product.brand+' — ':'')+product.name;
-    if(product.img&&imgEl) imgEl.value=product.img;
-    if(statusEl) statusEl.textContent='✓ Producto encontrado. Revisá los datos y completá precio y link si querés.';
-    autoFillTitle();
+    // Mostrar modal de confirmación
+    const fullName=(product.brand?product.brand+' ':'')+product.name;
+    const m=document.createElement('div');
+    m.className='modal-bg';
+    m.innerHTML=`<div class="modal">
+      <h3 style="margin:0 0 8px;color:#1b4332">¿Es este el producto?</h3>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 12px">Encontrado en ${esc(product.source||'base de datos')}</p>
+      ${product.img?`<img src="${esc(product.img)}" style="width:100%;max-height:160px;object-fit:contain;border-radius:10px;margin-bottom:12px;border:1px solid var(--line)">`:''}
+      <div style="background:#f0f7f0;border-radius:10px;padding:12px;margin-bottom:14px">
+        <p style="margin:0 0 2px;font-size:.78rem;color:var(--muted)">PRODUCTO ENCONTRADO</p>
+        <p style="margin:0;font-size:1rem;font-weight:700;color:#1b4332">${esc(fullName)}</p>
+        ${product.brand?`<p style="margin:4px 0 0;font-size:.8rem;color:#555">Marca: ${esc(product.brand)}</p>`:''}
+      </div>
+      <button id="btnConfirmProduct" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">✓ Sí, es este — usar estos datos</button>
+      <button class="ghost" style="width:100%" id="btnRejectProduct">✗ No, cargar manualmente</button>
+    </div>`;
+    document.body.appendChild(m);
+    document.getElementById('btnConfirmProduct').addEventListener('click',()=>{
+      const nameEl=document.getElementById('newName');
+      if(nameEl){ nameEl.value=fullName; autoFillTitle(); }
+      if(statusEl) statusEl.textContent='✓ Producto cargado. Completá el precio y link si querés.';
+      m.remove();
+    });
+    document.getElementById('btnRejectProduct').addEventListener('click',()=>{
+      m.remove();
+      if(statusEl) statusEl.textContent='OK — completá los datos a mano.';
+      document.getElementById('newName')?.focus();
+    });
   } else {
-    if(statusEl) statusEl.textContent='No encontramos este producto. Completá los datos a mano.';
-    if(nameEl) nameEl.focus();
+    if(statusEl) statusEl.textContent='';
+    alert('⚠️ No encontramos este producto en ninguna base de datos.\n\nTenés que cargarlo todo manualmente:\n• Nombre del producto\n• Precio estimado\n• Link donde comprarlo (opcional)');
+    document.getElementById('newName')?.focus();
   }
 }
 
@@ -382,6 +447,7 @@ document.addEventListener('click',function(e){
 function dispatch(a,x,y){
   const map={
     'home':()=>renderHome(),
+    'scanAndFill':()=>scanAndFill(),
     'showPrivacy':()=>showPrivacy(),
     'showContact':()=>showContact(),
     'showFAQ':()=>showFAQ(),
@@ -980,7 +1046,7 @@ function ownerStepContent(data, code, guestLink, step){
         💡 Cuanto más detallés el regalo (marca, modelo, color), más fácil le va a ser a quien lo compre.
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <button onclick="scanAndFill()" style="padding:8px 12px;font-size:.8rem;background:#1d5c40;color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;font-weight:600">📷 Escanear producto</button>
+        <button data-a="scanAndFill" style="padding:8px 12px;font-size:.8rem;background:#1d5c40;color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;font-weight:600">📷 Escanear producto</button>
         <p id="scanResult" style="font-size:.75rem;color:var(--muted);margin:0;flex:1;line-height:1.3"></p>
       </div>
       <input id="newName" placeholder="Ej: Set de cuchillos alemanes" onfocus="rotatePlaceholder(this)">
@@ -2551,6 +2617,7 @@ function clearLastList(){
 }
 
 async function deleteList(code){
+  try{
   if(!confirm('⚠️ ¿Seguro que querés borrar la lista?\n\nEsta acción NO se puede deshacer.\nSe borrarán todos los regalos, reservas y datos de la lista para siempre.\n\nSolo confirmá si estás seguro.')) return;
   // Borrar de Supabase
   try{ await sSet('ev:'+code, null); }catch(e){}
@@ -2563,6 +2630,7 @@ async function deleteList(code){
     Object.keys(localStorage).filter(k=>k.startsWith('gn:'+code)).forEach(k=>localStorage.removeItem(k));
   }catch(e){}
   renderHome();
+  }catch(e){alert('Error al borrar: '+e.message);}
 }
 
 
