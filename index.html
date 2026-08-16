@@ -126,6 +126,7 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
 .home-footer-link{font-size:.65rem;color:#4a9068;text-decoration:underline;cursor:pointer}
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest/umd/index.min.js"></script>
 </head>
 <body>
 <div class="wrap" id="app">Cargando...</div>
@@ -138,6 +139,125 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
   </div>
 </noscript>
 <script>
+
+// ── ESCÁNER DE CÓDIGO DE BARRAS ──
+async function lookupBarcode(code){
+  try{
+    const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const d=await r.json();
+    if(d.status===1&&d.product){
+      const p=d.product;
+      return {
+        name: p.product_name_es||p.product_name||p.generic_name||null,
+        brand: p.brands||null,
+        img: p.image_front_url||p.image_url||null,
+      };
+    }
+  }catch(e){}
+  return null;
+}
+
+async function openBarcodeScanner(){
+  return new Promise((resolve)=>{
+    const m=document.createElement('div');
+    m.className='modal-bg';
+    m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px">
+      <div style="padding:16px 16px 8px;background:#1d5c40;color:#fff">
+        <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
+        <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código de barras del producto</p>
+      </div>
+      <div style="position:relative;background:#000;min-height:240px">
+        <video id="scanVideo" style="width:100%;max-height:280px;display:block" autoplay muted playsinline></video>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:80px;border:2px solid rgba(255,255,255,.7);border-radius:8px;pointer-events:none"></div>
+      </div>
+      <div style="padding:12px 16px">
+        <p id="scanStatus" style="font-size:.8rem;color:var(--muted);text-align:center;margin:0 0 10px">Buscando código...</p>
+        <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+
+    let stream=null;
+    let stopped=false;
+
+    const stop=()=>{
+      stopped=true;
+      if(stream) stream.getTracks().forEach(t=>t.stop());
+      m.remove();
+    };
+
+    document.getElementById('btnCancelScan').addEventListener('click',()=>{
+      stop(); resolve(null);
+    });
+
+    const video=document.getElementById('scanVideo');
+
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(s=>{
+      stream=s;
+      video.srcObject=s;
+      video.play();
+
+      // Intentar BarcodeDetector nativo primero
+      if('BarcodeDetector' in window){
+        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+        const scan=async()=>{
+          if(stopped) return;
+          try{
+            const codes=await detector.detect(video);
+            if(codes.length>0){
+              const barcode=codes[0].rawValue;
+              document.getElementById('scanStatus').textContent='✓ Código encontrado: '+barcode+' — buscando producto...';
+              stop();
+              resolve(barcode);
+              return;
+            }
+          }catch(e){}
+          if(!stopped) requestAnimationFrame(scan);
+        };
+        video.addEventListener('playing',scan,{once:true});
+      } else {
+        // Fallback: ZXing
+        try{
+          const hints=new Map();
+          const codeReader=new ZXingBrowser.BrowserMultiFormatReader(hints);
+          codeReader.decodeFromVideoElement(video).then(result=>{
+            if(!stopped){
+              stop();
+              resolve(result.getText());
+            }
+          }).catch(()=>{});
+        }catch(e){
+          document.getElementById('scanStatus').textContent='⚠️ Tu navegador no soporta escaneo. Ingresá el código manual.';
+        }
+      }
+    })
+    .catch(()=>{
+      stop();
+      alert('No se pudo acceder a la cámara. Asegurate de dar permiso de cámara.');
+      resolve(null);
+    });
+  });
+}
+
+async function scanAndFill(){
+  const barcode=await openBarcodeScanner();
+  if(!barcode) return;
+  const nameEl=document.getElementById('newName');
+  const imgEl=document.getElementById('newLink');
+  const statusEl=document.getElementById('scanResult');
+  if(statusEl) statusEl.textContent='🔍 Buscando producto...';
+  const product=await lookupBarcode(barcode);
+  if(product&&product.name){
+    if(nameEl) nameEl.value=(product.brand?product.brand+' — ':'')+product.name;
+    if(product.img&&imgEl) imgEl.value=product.img;
+    if(statusEl) statusEl.textContent='✓ Producto encontrado. Revisá los datos y completá precio y link si querés.';
+    autoFillTitle();
+  } else {
+    if(statusEl) statusEl.textContent='No encontramos este producto. Completá los datos a mano.';
+    if(nameEl) nameEl.focus();
+  }
+}
 
 // ── SUPABASE ──
 const SB_URL = 'https://xiapoxfttymlkyvbpamt.supabase.co';
@@ -883,6 +1003,10 @@ function ownerStepContent(data, code, guestLink, step){
       <p style="font-size:.75rem;color:var(--muted);margin:0 0 10px">${data.gifts.length}/20 regalos cargados</p>
       <div style="background:#f0f7f0;border:1px solid #a8d5b5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.8rem;color:#2d6a4f;line-height:1.5">
         💡 Cuanto más detallés el regalo (marca, modelo, color), más fácil le va a ser a quien lo compre.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <button onclick="scanAndFill()" style="padding:8px 12px;font-size:.8rem;background:#1d5c40;color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;font-weight:600">📷 Escanear producto</button>
+        <p id="scanResult" style="font-size:.75rem;color:var(--muted);margin:0;flex:1;line-height:1.3"></p>
       </div>
       <input id="newName" placeholder="Ej: Set de cuchillos alemanes" onfocus="rotatePlaceholder(this)">
       <label>Link del producto online <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
