@@ -2453,12 +2453,16 @@ function clearLastList(){
 
 async function deleteList(code){
   if(!confirm('⚠️ ¿Seguro que querés borrar la lista?\n\nEsta acción NO se puede deshacer.\nSe borrarán todos los regalos, reservas y datos de la lista para siempre.\n\nSolo confirmá si estás seguro.')) return;
-  // Borrar del storage
+  // Borrar de Supabase
   try{ await sSet('ev:'+code, null); }catch(e){}
-  // Borrar del localStorage si era la lista guardada
-  if(lsGet('lastOwnerCode')===code){
-    try{localStorage.removeItem('lastOwnerCode');localStorage.removeItem('lastOwnerTitle');}catch(e){}
-  }
+  // Borrar del caché local — MUY IMPORTANTE para que no aparezca más
+  try{
+    localStorage.removeItem('ev:'+code);
+    localStorage.removeItem('lastOwnerCode');
+    localStorage.removeItem('lastOwnerTitle');
+    // Borrar también nombres de invitados de esta lista
+    Object.keys(localStorage).filter(k=>k.startsWith('gn:'+code)).forEach(k=>localStorage.removeItem(k));
+  }catch(e){}
   renderHome();
 }
 
