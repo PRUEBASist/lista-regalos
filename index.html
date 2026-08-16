@@ -126,7 +126,7 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
 .home-footer-link{font-size:.65rem;color:#4a9068;text-decoration:underline;cursor:pointer}
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest/umd/index.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 <div class="wrap" id="app">Cargando...</div>
@@ -161,81 +161,57 @@ async function openBarcodeScanner(){
   return new Promise((resolve)=>{
     const m=document.createElement('div');
     m.className='modal-bg';
-    m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px">
-      <div style="padding:16px 16px 8px;background:#1d5c40;color:#fff">
+    m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px;max-width:400px">
+      <div style="padding:14px 16px 10px;background:#1d5c40;color:#fff">
         <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
         <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código del producto</p>
       </div>
-      <div style="position:relative;background:#000;min-height:240px">
-        <video id="scanVideo" style="width:100%;max-height:280px;display:block" autoplay muted playsinline></video>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:90px;border:3px solid #4ade80;border-radius:10px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.4)"></div>
-      </div>
-      <div style="padding:12px 16px">
-        <p id="scanStatus" style="font-size:.8rem;color:#555;text-align:center;margin:0 0 10px">📡 Apuntá el código de barras al recuadro verde...</p>
+      <div id="qr-reader" style="width:100%"></div>
+      <div style="padding:10px 16px">
+        <p id="scanStatus" style="font-size:.78rem;color:#555;text-align:center;margin:0 0 8px">Iniciando cámara...</p>
         <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
       </div>
     </div>`;
     document.body.appendChild(m);
 
-    let stream=null, stopped=false, codeReader=null;
+    let scanner=null;
+    let resolved=false;
 
-    const stop=()=>{
-      stopped=true;
-      try{ if(codeReader) codeReader.reset(); }catch(e){}
-      if(stream) stream.getTracks().forEach(t=>t.stop());
+    const stop=async()=>{
+      try{ if(scanner) await scanner.stop(); }catch(e){}
       m.remove();
     };
 
-    document.getElementById('btnCancelScan').addEventListener('click',()=>{ stop(); resolve(null); });
+    const done=(barcode)=>{
+      if(resolved) return;
+      resolved=true;
+      stop().then(()=>resolve(barcode));
+    };
 
-    const video=document.getElementById('scanVideo');
-    const setStatus=txt=>{ const el=document.getElementById('scanStatus'); if(el) el.textContent=txt; };
+    document.getElementById('btnCancelScan').addEventListener('click',()=>done(null));
 
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
-    .then(s=>{
-      stream=s; video.srcObject=s; video.play();
-
-      const tryZXing=()=>{
-        try{
-          codeReader=new ZXingBrowser.BrowserMultiFormatReader();
-          codeReader.decodeFromVideoElement(video,(result,err)=>{
-            if(stopped) return;
-            if(result){
-              const barcode=result.getText();
-              setStatus('✓ Código: '+barcode+' — buscando...');
-              stop(); resolve(barcode);
-            }
-          });
-        }catch(e){
-          setStatus('⚠️ No se pudo iniciar el escáner. Probá desde Chrome en Android o Safari en iPhone.');
-        }
-      };
-
-      // BarcodeDetector nativo (Chrome Android, Samsung)
-      if('BarcodeDetector' in window){
-        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
-        const scan=async()=>{
-          if(stopped) return;
-          try{
-            const codes=await detector.detect(video);
-            if(codes.length>0){
-              setStatus('✓ Código encontrado — buscando producto...');
-              stop(); resolve(codes[0].rawValue); return;
-            }
-          }catch(e){ tryZXing(); return; }
-          if(!stopped) setTimeout(scan,150);
-        };
-        video.addEventListener('playing',()=>setTimeout(scan,500),{once:true});
-      } else {
-        // Safari / Firefox / otros → ZXing
-        video.addEventListener('playing',()=>setTimeout(tryZXing,500),{once:true});
-      }
-    })
-    .catch(err=>{
-      stop();
-      alert('No se pudo acceder a la cámara.\n\nAsegurate de:\n• Dar permiso de cámara al navegador\n• Estar en una página con HTTPS\n• Usar Chrome o Safari actualizados');
-      resolve(null);
-    });
+    try{
+      scanner=new Html5Qrcode('qr-reader');
+      scanner.start(
+        {facingMode:'environment'},
+        {fps:10, qrbox:{width:260,height:120}, supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA]},
+        (decodedText)=>{
+          const el=document.getElementById('scanStatus');
+          if(el) el.textContent='✓ Código encontrado — buscando producto...';
+          done(decodedText);
+        },
+        ()=>{}
+      ).then(()=>{
+        const el=document.getElementById('scanStatus');
+        if(el) el.textContent='📡 Apuntá el código de barras al recuadro...';
+      }).catch(err=>{
+        const el=document.getElementById('scanStatus');
+        if(el) el.textContent='No se pudo acceder a la cámara. Verificá los permisos.';
+      });
+    }catch(e){
+      const el=document.getElementById('scanStatus');
+      if(el) el.textContent='Error al iniciar el escáner: '+e.message;
+    }
   });
 }
 
