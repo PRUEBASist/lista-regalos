@@ -207,12 +207,12 @@ async function openBarcodeScanner(){
     </div>`;
     document.body.appendChild(m);
 
-    let stream=null, stopped=false;
+    let stopped=false, codeReader=null;
     const setMsg=t=>{const el=document.getElementById('scanStatus');if(el)el.textContent=t;};
 
     const stop=()=>{
       stopped=true;
-      if(stream) stream.getTracks().forEach(t=>t.stop());
+      try{if(codeReader&&codeReader.reset)codeReader.reset();}catch(e){}
       m.remove();
     };
 
@@ -220,35 +220,66 @@ async function openBarcodeScanner(){
 
     const video=document.getElementById('scanVideo');
 
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-    .then(s=>{
-      stream=s; video.srcObject=s; video.play();
-      setMsg('📡 Apuntá el código al recuadro verde...');
-
-      if('BarcodeDetector' in window){
-        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
-        const scan=async()=>{
-          if(stopped)return;
-          try{
-            const codes=await detector.detect(video);
-            if(codes.length>0){
-              setMsg('✓ Código: '+codes[0].rawValue);
-              setTimeout(()=>{stop();resolve(codes[0].rawValue);},600);
-              return;
+    const startWithZXing=()=>{
+      try{
+        codeReader=new ZXingBrowser.BrowserMultiFormatReader();
+        codeReader.decodeFromConstraints(
+          {video:{facingMode:'environment'}},
+          video,
+          (result,err)=>{
+            if(stopped)return;
+            if(result){
+              setMsg('✓ Código: '+result.getText());
+              setTimeout(()=>{stop();resolve(result.getText());},600);
             }
-          }catch(e){}
-          if(!stopped) setTimeout(scan,200);
-        };
-        video.addEventListener('playing',()=>setTimeout(scan,800),{once:true});
-      } else {
-        setMsg('Tu navegador no soporta escaneo en tiempo real. Usá Chrome en Android o Safari 17+ en iPhone.');
+          }
+        ).then(()=>{ setMsg('📡 Apuntá el código al recuadro verde...'); })
+         .catch(e=>{ setMsg('No se pudo acceder a la cámara: '+e.message); });
+      }catch(e){
+        setMsg('Error al iniciar: '+e.message);
       }
-    })
-    .catch(()=>{
-      stop();
-      alert('No se pudo acceder a la cámara. Asegurate de dar permiso de cámara al navegador.');
-      resolve(null);
-    });
+    };
+
+    const startScanning=()=>{
+      if('BarcodeDetector' in window){
+        // Chrome Android
+        navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+        .then(stream=>{
+          video.srcObject=stream;
+          video.play();
+          setMsg('📡 Apuntá el código al recuadro verde...');
+          const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+          const scan=async()=>{
+            if(stopped)return;
+            try{
+              const codes=await detector.detect(video);
+              if(codes.length>0){
+                setMsg('✓ Código: '+codes[0].rawValue);
+                stream.getTracks().forEach(t=>t.stop());
+                setTimeout(()=>{stop();resolve(codes[0].rawValue);},600);
+                return;
+              }
+            }catch(e){}
+            if(!stopped) setTimeout(scan,200);
+          };
+          video.addEventListener('playing',()=>setTimeout(scan,800),{once:true});
+        }).catch(()=>{ stop(); alert('No se pudo acceder a la cámara.'); resolve(null); });
+      } else {
+        // Safari / Firefox — usar ZXing
+        if(typeof ZXingBrowser!=='undefined'){
+          startWithZXing();
+        } else {
+          setMsg('Cargando escáner...');
+          const s=document.createElement('script');
+          s.src='https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/index.min.js';
+          s.onload=startWithZXing;
+          s.onerror=()=>setMsg('No se pudo cargar el escáner. Revisá tu conexión a internet.');
+          document.head.appendChild(s);
+        }
+      }
+    };
+
+    startScanning();
   });
 }
 
@@ -636,9 +667,17 @@ function dispatch(a,x,y){
           ctx.fillText('Gratis · Sin registro · Hecho en Argentina',230,fY+22);
           ctx.fillStyle='#aaa'; ctx.font='11px Arial,sans-serif';
           ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+40);
-          const a=document.createElement('a');
-          a.download=`qr-lista-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
-          a.href=canvas.toDataURL('image/png'); a.click();
+          // iOS Safari no soporta a.click() para descargar — abrir en nueva pestaña
+          const dataUrl=canvas.toDataURL('image/png');
+          const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+          if(isIOS){
+            const w2=window.open('','_blank');
+            w2.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh"><p style="color:#fff;font-family:sans-serif;margin:0 0 12px;font-size:14px">Mantené presionada la imagen y elegí \'Guardar imagen\'</p><img src="'+dataUrl+'" style="max-width:95%;border-radius:12px"></body></html>');
+          } else {
+            const a=document.createElement('a');
+            a.download=`qr-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
+            a.href=dataUrl; a.click();
+          }
         };
         img.onerror=()=>{ window.open(qrUrl,'_blank'); };
         img.src=qrUrl;
