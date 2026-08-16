@@ -1970,9 +1970,9 @@ async function finalConfirm(code,gid){
     // Sección de pedido de dirección anónima (sin revelar quién pide)
     const requestSection=`
       <div style="margin-top:12px;background:#f0f7f0;border:1.5px solid #c8e6d4;border-radius:12px;padding:14px;text-align:center">
-        <p style="margin:0 0 6px;font-size:.92rem;font-weight:700;color:#1b4332">📦 ¿Querés enviarlo a su domicilio?</p>
+        <p style="margin:0 0 6px;font-size:.92rem;font-weight:700;color:#1b4332">📦 ¿Querés enviarlo físicamente?</p>
         <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.5">
-          Coordiná el envío escribiéndole directo a <b>${esc(data.owner)}</b> para acordar cómo hacerlo llegar. 😉
+          Coordiná el envío escribiéndole directo a <b>${esc(data.owner)}</b> — acordá la dirección y la forma de entrega por fuera de la app. 😉
         </p>
       </div>`;
     if(area){
@@ -2207,7 +2207,7 @@ function showFAQ(){
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
       <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cómo recibe el dinero si activo "Regalar el valor estimado"?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">El organizador carga su alias o CBU bancario. Los aportes se hacen por transferencia directa entre personas — elregalo.com.ar no interviene ni cobra comisión.</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Cuando alguien quiere hacer un aporte, la app le pide que le escriba directamente al organizador para pedirle el alias o CBU. La transferencia se hace entre personas — elregalo.com.ar no interviene ni guarda datos bancarios.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
@@ -2278,22 +2278,22 @@ function showHowTo(){
     <div style="background:#f0f7f0;border-radius:10px;padding:14px;margin-bottom:12px">
       <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#1b4332">🎁 Si querés crear una lista de regalos</p>
       <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
-        <b>1.</b> Tocá <b>"Crear lista nueva"</b> en la pantalla de inicio.<br>
-        <b>2.</b> Completá tus datos: alias para transferencias, dirección si querés recibir envíos.<br>
-        <b>3.</b> Agregá los regalos que querés recibir — con precio, link y lugar físico si querés.<br>
-        <b>4.</b> Compartí el link o código con tus amigos por WhatsApp, Instagram, etc.<br>
-        <b>5.</b> Guardá bien tu código y contraseña — los necesitás para volver a entrar.
+        <b>1.</b> Tocá <b>"Crear mi lista"</b> en la pantalla de inicio.<br>
+        <b>2.</b> Completá tu nombre y la ocasión — no hace falta registrarse ni crear cuenta.<br>
+        <b>3.</b> Agregá los regalos que querés recibir — con precio y link si querés.<br>
+        <b>4.</b> Compartí el link o el código con tus seres queridos por WhatsApp, Instagram, etc.<br>
+        <b>5.</b> Guardá bien tu código y contraseña — los necesitás para volver a entrar y editar tu lista.
       </p>
     </div>
 
     <div style="background:#fff3cd;border-radius:10px;padding:14px;margin-bottom:12px">
       <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#7a5c00">🔗 Si te pasaron un código o link</p>
       <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
-        <b>1.</b> Tocá <b>"Tengo un código — ver regalos"</b> en la pantalla de inicio.<br>
-        <b>2.</b> Ingresá el código de 5 letras o abrí el link directamente.<br>
-        <b>3.</b> Elegí un regalo de la lista — quedarán reservados para que nadie compre lo mismo.<br>
-        <b>4.</b> Confirmá definitivamente cuando estés seguro — después no se puede cancelar.<br>
-        <b>5.</b> Si querés aportar dinero en vez de comprar el regalo, usá la opción <b>"💸 Regalar el valor estimado"</b>.
+        <b>1.</b> Tocá <b>"Ya tengo un código"</b> en la pantalla de inicio.<br>
+        <b>2.</b> Ingresá el código (2 letras y 4 números) o abrí el link directamente.<br>
+        <b>3.</b> Elegí un regalo de la lista — queda reservado para que nadie compre lo mismo.<br>
+        <b>4.</b> Confirmá cuando estés seguro — una vez confirmado no se puede cancelar.<br>
+        <b>5.</b> Si querés hacer un aporte de dinero, escribile directamente al organizador para coordinar la transferencia. 😉
       </p>
     </div>
 
