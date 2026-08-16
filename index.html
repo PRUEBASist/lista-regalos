@@ -164,77 +164,76 @@ async function openBarcodeScanner(){
     m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px">
       <div style="padding:16px 16px 8px;background:#1d5c40;color:#fff">
         <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
-        <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código de barras del producto</p>
+        <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código del producto</p>
       </div>
       <div style="position:relative;background:#000;min-height:240px">
         <video id="scanVideo" style="width:100%;max-height:280px;display:block" autoplay muted playsinline></video>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:80px;border:2px solid rgba(255,255,255,.7);border-radius:8px;pointer-events:none"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:90px;border:3px solid #4ade80;border-radius:10px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.4)"></div>
       </div>
       <div style="padding:12px 16px">
-        <p id="scanStatus" style="font-size:.8rem;color:var(--muted);text-align:center;margin:0 0 10px">Buscando código...</p>
+        <p id="scanStatus" style="font-size:.8rem;color:#555;text-align:center;margin:0 0 10px">📡 Apuntá el código de barras al recuadro verde...</p>
         <button class="ghost" style="width:100%" id="btnCancelScan">Cancelar</button>
       </div>
     </div>`;
     document.body.appendChild(m);
 
-    let stream=null;
-    let stopped=false;
+    let stream=null, stopped=false, codeReader=null;
 
     const stop=()=>{
       stopped=true;
+      try{ if(codeReader) codeReader.reset(); }catch(e){}
       if(stream) stream.getTracks().forEach(t=>t.stop());
       m.remove();
     };
 
-    document.getElementById('btnCancelScan').addEventListener('click',()=>{
-      stop(); resolve(null);
-    });
+    document.getElementById('btnCancelScan').addEventListener('click',()=>{ stop(); resolve(null); });
 
     const video=document.getElementById('scanVideo');
+    const setStatus=txt=>{ const el=document.getElementById('scanStatus'); if(el) el.textContent=txt; };
 
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
     .then(s=>{
-      stream=s;
-      video.srcObject=s;
-      video.play();
+      stream=s; video.srcObject=s; video.play();
 
-      // Intentar BarcodeDetector nativo primero
+      const tryZXing=()=>{
+        try{
+          codeReader=new ZXingBrowser.BrowserMultiFormatReader();
+          codeReader.decodeFromVideoElement(video,(result,err)=>{
+            if(stopped) return;
+            if(result){
+              const barcode=result.getText();
+              setStatus('✓ Código: '+barcode+' — buscando...');
+              stop(); resolve(barcode);
+            }
+          });
+        }catch(e){
+          setStatus('⚠️ No se pudo iniciar el escáner. Probá desde Chrome en Android o Safari en iPhone.');
+        }
+      };
+
+      // BarcodeDetector nativo (Chrome Android, Samsung)
       if('BarcodeDetector' in window){
-        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
         const scan=async()=>{
           if(stopped) return;
           try{
             const codes=await detector.detect(video);
             if(codes.length>0){
-              const barcode=codes[0].rawValue;
-              document.getElementById('scanStatus').textContent='✓ Código encontrado: '+barcode+' — buscando producto...';
-              stop();
-              resolve(barcode);
-              return;
+              setStatus('✓ Código encontrado — buscando producto...');
+              stop(); resolve(codes[0].rawValue); return;
             }
-          }catch(e){}
-          if(!stopped) requestAnimationFrame(scan);
+          }catch(e){ tryZXing(); return; }
+          if(!stopped) setTimeout(scan,150);
         };
-        video.addEventListener('playing',scan,{once:true});
+        video.addEventListener('playing',()=>setTimeout(scan,500),{once:true});
       } else {
-        // Fallback: ZXing
-        try{
-          const hints=new Map();
-          const codeReader=new ZXingBrowser.BrowserMultiFormatReader(hints);
-          codeReader.decodeFromVideoElement(video).then(result=>{
-            if(!stopped){
-              stop();
-              resolve(result.getText());
-            }
-          }).catch(()=>{});
-        }catch(e){
-          document.getElementById('scanStatus').textContent='⚠️ Tu navegador no soporta escaneo. Ingresá el código manual.';
-        }
+        // Safari / Firefox / otros → ZXing
+        video.addEventListener('playing',()=>setTimeout(tryZXing,500),{once:true});
       }
     })
-    .catch(()=>{
+    .catch(err=>{
       stop();
-      alert('No se pudo acceder a la cámara. Asegurate de dar permiso de cámara.');
+      alert('No se pudo acceder a la cámara.\n\nAsegurate de:\n• Dar permiso de cámara al navegador\n• Estar en una página con HTTPS\n• Usar Chrome o Safari actualizados');
       resolve(null);
     });
   });
