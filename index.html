@@ -127,6 +127,7 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="wrap" id="app">Cargando...</div>
@@ -2348,63 +2349,95 @@ function getShareUrl(guestLink){
 }
 
 async function generateQRCard(code, owner, alias){
-  return new Promise((resolve, reject)=>{
-    const link=`https://elregalo.com.ar/#g=${code}`;
-    const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=1d5c40&bgcolor=ffffff&data=${encodeURIComponent(link)}`;
-    const hasAlias=!!alias;
-    const H=hasAlias?600:510;
-    const canvas=document.createElement('canvas');
-    canvas.width=460; canvas.height=H;
-    const ctx=canvas.getContext('2d');
-    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,460,H);
-    ctx.strokeStyle='#1d5c40'; ctx.lineWidth=5;
-    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(2,2,456,H-4,18);ctx.stroke();}
-    ctx.fillStyle='#1d5c40';
-    ctx.beginPath();
-    if(ctx.roundRect) ctx.roundRect(2,2,456,80,{upperLeft:18,upperRight:18,lowerLeft:0,lowerRight:0});
-    else ctx.rect(2,2,456,80);
-    ctx.fill();
-    ctx.fillStyle='#ffffff'; ctx.font='500 13px Arial,sans-serif'; ctx.textAlign='center';
-    ctx.fillText('LISTA DE REGALOS DE',230,28);
-    ctx.font='bold 26px Arial,sans-serif';
-    ctx.fillText(owner.toUpperCase().substring(0,24),230,62);
-    const img=new Image(); img.crossOrigin='anonymous';
-    img.onload=()=>{
-      ctx.drawImage(img,105,94,250,250);
-      ctx.fillStyle='#1d5c40'; ctx.font='bold 15px Arial,sans-serif';
-      ctx.fillText('Escaneá para ver y elegir regalos',230,364);
-      ctx.fillStyle='#444'; ctx.font='13px Arial,sans-serif';
-      ctx.fillText('Código: '+code,230,386);
+  return new Promise((resolve,reject)=>{
+    // Generar QR client-side con QRCode.js (sin CORS)
+    const tmp=document.createElement('div');
+    tmp.style.display='none';
+    document.body.appendChild(tmp);
+    try{
+      new QRCode(tmp,{
+        text:`https://elregalo.com.ar/#g=${code}`,
+        width:300, height:300,
+        colorDark:'#1d5c40', colorLight:'#ffffff',
+        correctLevel:QRCode.CorrectLevel.M
+      });
+    }catch(e){ document.body.removeChild(tmp); reject(e); return; }
+
+    setTimeout(()=>{
+      const qrImg=tmp.querySelector('img')||tmp.querySelector('canvas');
+      if(!qrImg){ document.body.removeChild(tmp); reject(new Error('QR no generado')); return; }
+
+      const hasAlias=!!alias;
+      const H=hasAlias?600:510;
+      const canvas=document.createElement('canvas');
+      canvas.width=460; canvas.height=H;
+      const ctx=canvas.getContext('2d');
+
+      // Fondo blanco con borde
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,460,H);
+      ctx.strokeStyle='#1d5c40'; ctx.lineWidth=5;
+      if(ctx.roundRect){ctx.beginPath();ctx.roundRect(2,2,456,H-4,18);ctx.stroke();}
+
+      // Header verde
+      ctx.fillStyle='#1d5c40';
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(2,2,456,80,{upperLeft:18,upperRight:18,lowerLeft:0,lowerRight:0});
+      else ctx.rect(2,2,456,80);
+      ctx.fill();
+      ctx.fillStyle='#ffffff'; ctx.font='500 13px Arial,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('LISTA DE REGALOS DE',230,28);
+      ctx.font='bold 24px Arial,sans-serif';
+      ctx.fillText(owner.toUpperCase().substring(0,24),230,62);
+
+      // QR
+      try{
+        if(qrImg.tagName==='CANVAS'){
+          ctx.drawImage(qrImg,105,90,250,250);
+        } else {
+          const qrCanvas=document.createElement('canvas');
+          qrCanvas.width=300; qrCanvas.height=300;
+          const qrCtx=qrCanvas.getContext('2d');
+          qrCtx.drawImage(qrImg,0,0,300,300);
+          ctx.drawImage(qrCanvas,105,90,250,250);
+        }
+      }catch(e){ console.warn('QR draw error',e); }
+
+      ctx.fillStyle='#1d5c40'; ctx.font='bold 14px Arial,sans-serif';
+      ctx.fillText('Escaneá para ver y elegir regalos',230,362);
+      ctx.fillStyle='#555'; ctx.font='13px Arial,sans-serif';
+      ctx.fillText('Código: '+code,230,382);
+
       if(hasAlias){
         ctx.fillStyle='#f0f7f0';
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
+        if(ctx.roundRect) ctx.roundRect(30,400,400,82,10); else ctx.rect(30,400,400,82);
         ctx.fill();
         ctx.strokeStyle='#c8e6d4'; ctx.lineWidth=1.5;
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
+        if(ctx.roundRect) ctx.roundRect(30,400,400,82,10); else ctx.rect(30,400,400,82);
         ctx.stroke();
         ctx.fillStyle='#555'; ctx.font='12px Arial,sans-serif';
-        ctx.fillText('Para hacer tu aporte, transferí a:',230,428);
+        ctx.fillText('Para hacer tu aporte, transferí a:',230,424);
         ctx.fillStyle='#1d5c40'; ctx.font='bold 20px Arial,sans-serif';
-        ctx.fillText(alias,230,458);
+        ctx.fillText(alias,230,454);
         ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
-        ctx.fillText('alias / CBU / CVU',230,476);
+        ctx.fillText('alias / CBU / CVU',230,474);
       }
-      const sepY=hasAlias?500:406;
+
+      const sepY=hasAlias?498:400;
       ctx.strokeStyle='#e0e0e0'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(30,sepY); ctx.lineTo(430,sepY); ctx.stroke();
-      const fY=hasAlias?524:428;
-      ctx.fillStyle='#1d5c40'; ctx.font='bold 16px Arial,sans-serif';
+
+      const fY=hasAlias?522:424;
+      ctx.fillStyle='#1d5c40'; ctx.font='bold 15px Arial,sans-serif';
       ctx.fillText('elregalo.com.ar',230,fY);
-      ctx.fillStyle='#888'; ctx.font='12px Arial,sans-serif';
-      ctx.fillText('Gratis · Sin registro · Hecho en Argentina',230,fY+22);
-      ctx.fillStyle='#aaa'; ctx.font='11px Arial,sans-serif';
-      ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+40);
+      ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
+      ctx.fillText('Gratis · Sin registro · Hecho en Argentina',230,fY+20);
+      ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+36);
+
+      document.body.removeChild(tmp);
       resolve({canvas, dataUrl: canvas.toDataURL('image/png')});
-    };
-    img.onerror=()=>reject(new Error('No se pudo cargar el QR'));
-    img.src=qrUrl;
+    }, 300);
   });
 }
 
@@ -2412,53 +2445,77 @@ async function shareQRCard(guestLink, owner, code){
   const m=document.createElement('div');
   m.className='modal-bg';
   m.innerHTML=`<div class="modal">
-    <h3 style="margin:0 0 8px;color:#1b4332">📤 Compartir lista</h3>
+    <h3 style="margin:0 0 8px;color:#1b4332">📤 Descargar o compartir</h3>
     <p style="font-size:.82rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
-      Generamos una tarjeta con el QR de tu lista para que la compartas directamente por WhatsApp o donde quieras.
+      Se genera una tarjeta con el QR de tu lista. Podés descargarla o compartirla directo por WhatsApp, mail o donde quieras.
     </p>
     <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
       <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
       <input id="shareAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
     </div>
-    <button id="btnDoShare" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">📤 Generar y compartir</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <button id="btnDoDownload2" style="padding:14px;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer">⬇️ Descargar</button>
+      <button id="btnDoShare2" style="padding:14px;font-weight:700;background:#1d5c40;color:#fff;border:none;border-radius:10px;cursor:pointer">📤 Compartir</button>
+    </div>
     <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
   </div>`;
   document.body.appendChild(m);
 
-  document.getElementById('btnDoShare').addEventListener('click', async()=>{
+  const generate=async(btn)=>{
     const alias=((document.getElementById('shareAlias')||{}).value||'').trim();
-    const btn=document.getElementById('btnDoShare');
-    btn.textContent='⏳ Generando...'; btn.disabled=true;
+    const orig=btn.textContent; btn.textContent='⏳ Generando...'; btn.disabled=true;
     try{
-      const {dataUrl}=await generateQRCard(code, owner, alias);
-      // Convertir a File para compartir
+      return await generateQRCard(code, owner, alias);
+    }catch(e){
+      btn.textContent=orig; btn.disabled=false;
+      alert('Error al generar la tarjeta: '+e.message);
+      return null;
+    }
+  };
+
+  // DESCARGAR
+  document.getElementById('btnDoDownload2').addEventListener('click',async function(){
+    const result=await generate(this);
+    if(!result) return;
+    const {dataUrl}=result;
+    m.remove();
+    try{
+      const a=document.createElement('a');
+      a.href=dataUrl;
+      a.download=`qr-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }catch(e){
+      // iOS fallback
+      const w2=window.open('','_blank');
+      if(w2) w2.document.write(`<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;padding:20px"><p style="color:#fff;font-family:sans-serif;margin:0 0 16px;text-align:center">Mantené presionada la imagen → Guardar imagen</p><img src="${dataUrl}" style="max-width:95%;border-radius:12px"></body></html>`);
+    }
+  });
+
+  // COMPARTIR
+  document.getElementById('btnDoShare2').addEventListener('click',async function(){
+    const result=await generate(this);
+    if(!result) return;
+    const {dataUrl}=result;
+    const shareLink=`https://elregalo.com.ar/#g=${code}`;
+    const shareText=`🎁 Lista de regalos de ${owner}\n\nEntrá desde este link:\n${shareLink}\n\nCódigo: ${code}`;
+    try{
       const res=await fetch(dataUrl);
       const blob=await res.blob();
-      const file=new File([blob], `qr-lista-${owner.toLowerCase().replace(/\s+/g,'-')}.png`, {type:'image/png'});
-      const shareLink=`https://elregalo.com.ar/#g=${code}`;
-      const shareText=`🎁 Lista de regalos de ${owner}
-
-📲 Entrá desde este link:
-${shareLink}
-
-Código: ${code}`;
-      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-        m.remove();
-        await navigator.share({files:[file], title:`Lista de ${owner}`, text:shareText});
+      const file=new File([blob],`qr-${owner}.png`,{type:'image/png'});
+      m.remove();
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:`Lista de ${owner}`,text:shareText,url:shareLink});
       } else if(navigator.share){
-        m.remove();
-        await navigator.share({title:`Lista de ${owner}`, text:shareText, url:shareLink});
+        await navigator.share({title:`Lista de ${owner}`,text:shareText,url:shareLink});
       } else {
-        // Fallback: descargar + copiar texto
+        // Fallback
         const a=document.createElement('a');
         a.href=dataUrl; a.download=`qr-${owner}.png`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         navigator.clipboard&&navigator.clipboard.writeText(shareText);
-        m.remove();
-        alert('Imagen descargada y texto copiado. Pegá el texto en WhatsApp y adjuntá la imagen.');
+        alert('Imagen descargada. Adjuntala en WhatsApp y el texto ya está copiado.');
       }
     }catch(e){
-      btn.textContent='📤 Generar y compartir'; btn.disabled=false;
       if(e.name!=='AbortError') alert('Error al compartir: '+e.message);
     }
   });
