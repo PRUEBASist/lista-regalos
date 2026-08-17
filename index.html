@@ -2310,7 +2310,7 @@ async function generateQRCard(code, owner, alias){
     }catch(e){ document.body.removeChild(tmp); reject(e); return; }
 
     setTimeout(()=>{
-      const qrImg=tmp.querySelector('img')||tmp.querySelector('canvas');
+      const qrImg=tmp.querySelector('canvas')||tmp.querySelector('img');
       if(!qrImg){ document.body.removeChild(tmp); reject(new Error('QR no generado')); return; }
 
       const hasAlias=!!alias;
