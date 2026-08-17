@@ -126,7 +126,7 @@ footer{text-align:center;color:var(--muted);font-size:.7rem;margin-top:28px;line
 .home-footer-link{font-size:.65rem;color:#4a9068;text-decoration:underline;cursor:pointer}
 .occasion-icon{font-size:2.5rem;text-align:center;margin-bottom:8px;}
 </style>
-<script src="https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
 <body>
 <div class="wrap" id="app">Cargando...</div>
@@ -189,6 +189,7 @@ async function lookupBarcode(code){
 
 async function openBarcodeScanner(){
   return new Promise((resolve)=>{
+    const containerId='quagga-container-'+Date.now();
     const m=document.createElement('div');
     m.className='modal-bg';
     m.innerHTML=`<div class="modal" style="padding:0;overflow:hidden;border-radius:16px">
@@ -196,9 +197,8 @@ async function openBarcodeScanner(){
         <p style="margin:0;font-size:.9rem;font-weight:700">📷 Escaneá el código de barras</p>
         <p style="margin:4px 0 0;font-size:.75rem;opacity:.85">Apuntá la cámara al código del producto</p>
       </div>
-      <div style="position:relative;background:#000;min-height:220px">
-        <video id="scanVideo" style="width:100%;max-height:260px;display:block" autoplay muted playsinline></video>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:100px;border:3px solid #4ade80;border-radius:8px;pointer-events:none"></div>
+      <div id="${containerId}" style="width:100%;min-height:220px;background:#000;position:relative">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:100px;border:3px solid #4ade80;border-radius:8px;pointer-events:none;z-index:10"></div>
       </div>
       <div style="padding:10px 16px 14px">
         <p id="scanStatus" style="font-size:.78rem;color:#555;text-align:center;margin:0 0 8px">Iniciando cámara...</p>
@@ -207,79 +207,56 @@ async function openBarcodeScanner(){
     </div>`;
     document.body.appendChild(m);
 
-    let stopped=false, codeReader=null;
+    let resolved=false;
     const setMsg=t=>{const el=document.getElementById('scanStatus');if(el)el.textContent=t;};
 
     const stop=()=>{
-      stopped=true;
-      try{if(codeReader&&codeReader.reset)codeReader.reset();}catch(e){}
+      try{Quagga.stop();}catch(e){}
       m.remove();
     };
 
-    document.getElementById('btnCancelScan').addEventListener('click',()=>{stop();resolve(null);});
-
-    const video=document.getElementById('scanVideo');
-
-    const startWithZXing=()=>{
-      try{
-        codeReader=new ZXingBrowser.BrowserMultiFormatReader();
-        codeReader.decodeFromConstraints(
-          {video:{facingMode:'environment'}},
-          video,
-          (result,err)=>{
-            if(stopped)return;
-            if(result){
-              setMsg('✓ Código: '+result.getText());
-              setTimeout(()=>{stop();resolve(result.getText());},600);
-            }
-          }
-        ).then(()=>{ setMsg('📡 Apuntá el código al recuadro verde...'); })
-         .catch(e=>{ setMsg('No se pudo acceder a la cámara: '+e.message); });
-      }catch(e){
-        setMsg('Error al iniciar: '+e.message);
-      }
+    const done=(val)=>{
+      if(resolved)return; resolved=true;
+      stop(); resolve(val);
     };
 
-    const startScanning=()=>{
-      if('BarcodeDetector' in window && !/iPhone|iPad|iPod/.test(navigator.userAgent)){
-        // Chrome Android
-        navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-        .then(stream=>{
-          video.srcObject=stream;
-          video.play();
-          setMsg('📡 Apuntá el código al recuadro verde...');
-          const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
-          const scan=async()=>{
-            if(stopped)return;
-            try{
-              const codes=await detector.detect(video);
-              if(codes.length>0){
-                setMsg('✓ Código: '+codes[0].rawValue);
-                stream.getTracks().forEach(t=>t.stop());
-                setTimeout(()=>{stop();resolve(codes[0].rawValue);},600);
-                return;
-              }
-            }catch(e){}
-            if(!stopped) setTimeout(scan,200);
-          };
-          video.addEventListener('playing',()=>setTimeout(scan,800),{once:true});
-        }).catch(()=>{ stop(); alert('No se pudo acceder a la cámara.'); resolve(null); });
-      } else {
-        // Safari / Firefox — usar ZXing
-        if(typeof ZXingBrowser!=='undefined'){
-          startWithZXing();
-        } else {
-          setMsg('Cargando escáner...');
-          const s=document.createElement('script');
-          s.src='https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js';
-          s.onload=startWithZXing;
-          s.onerror=()=>setMsg('No se pudo cargar el escáner. Revisá tu conexión a internet.');
-          document.head.appendChild(s);
+    document.getElementById('btnCancelScan').addEventListener('click',()=>done(null));
+
+    const startQuagga=()=>{
+      Quagga.init({
+        inputStream:{
+          type:'LiveStream',
+          target:document.getElementById(containerId),
+          constraints:{facingMode:'environment',width:640,height:480}
+        },
+        decoder:{readers:['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader']},
+        locate:true
+      }, err=>{
+        if(err){ setMsg('No se pudo acceder a la cámara: '+err); return; }
+        Quagga.start();
+        setMsg('📡 Apuntá el código al recuadro verde...');
+      });
+
+      Quagga.onDetected(result=>{
+        if(resolved)return;
+        const code=result.codeResult.code;
+        if(code&&code.length>5){
+          setMsg('✓ Código: '+code);
+          setTimeout(()=>done(code),500);
         }
-      }
+      });
     };
 
-    startScanning();
+    if(typeof Quagga!=='undefined'){
+      startQuagga();
+    } else {
+      setMsg('Cargando escáner...');
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js';
+      s.onload=startQuagga;
+      s.onerror=()=>setMsg('No se pudo cargar el escáner. Revisá tu conexión.');
+      document.head.appendChild(s);
+    }
   });
 }
 
@@ -629,7 +606,7 @@ function dispatch(a,x,y){
         let ownerText=owner.toUpperCase();
         ctx.fillText(ownerText,230,62);
         // QR sobre fondo blanco
-        const img=new Image(); img.crossOrigin='anonymous';
+        const img=new Image(); img.crossOrigin='anonymous'; img.referrerPolicy='no-referrer';
         img.onload=()=>{
           ctx.drawImage(img,105,94,250,250);
           // Texto bajo QR
@@ -669,14 +646,14 @@ function dispatch(a,x,y){
           ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+40);
           // iOS Safari no soporta a.click() para descargar — abrir en nueva pestaña
           const dataUrl=canvas.toDataURL('image/png');
-          const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-          if(isIOS){
-            const w2=window.open('','_blank');
-            w2.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh"><p style="color:#fff;font-family:sans-serif;margin:0 0 12px;font-size:14px">Mantené presionada la imagen y elegí \'Guardar imagen\'</p><img src="'+dataUrl+'" style="max-width:95%;border-radius:12px"></body></html>');
-          } else {
+          try{
             const a=document.createElement('a');
             a.download=`qr-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
-            a.href=dataUrl; a.click();
+            a.href=dataUrl; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          }catch(e){
+            // Fallback iOS
+            const w2=window.open('','_blank');
+            if(w2) w2.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px"><p style="color:#fff;font-family:sans-serif;margin:0 0 16px;font-size:14px;text-align:center">Mantené presionada la imagen y elegí \'Guardar imagen\'</p><img src="'+dataUrl+'" style="max-width:95%;border-radius:12px"></body></html>');
           }
         };
         img.onerror=()=>{ window.open(qrUrl,'_blank'); };
@@ -690,7 +667,7 @@ function dispatch(a,x,y){
       w.document.write('<!DOCTYPE html><html><head><title>QR elregalo.com.ar</title><style>body{margin:32px;display:flex;justify-content:center;font-family:sans-serif;background:#fff}@media print{body{margin:0}}</style></head><body>'+card.outerHTML+'<script>window.onload=function(){window.print();}<\/script></body></html>');
       w.document.close();
     },
-    'shareNative':()=>shareNative(x,y),
+    'shareNative':()=>shareNative(x,y,z),
     'shareFacebook':()=>shareFacebook(x),
     'shareX':()=>shareX(x,y),
     'shareInstagram':()=>shareInstagram(x),
@@ -1161,7 +1138,7 @@ function ownerStepContent(data, code, guestLink, step){
       <h3 style="margin:0 0 8px;color:#1b4332">🚀 Compartir la lista</h3>
       <p style="font-size:.8rem;color:var(--muted);margin:0 0 12px">Mandásela a tus amigos para que elijan qué regalarte.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
+        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}" data-z="${esc(code)}"
           style="background:#25D366;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
           💬 WhatsApp
         </button>
@@ -2370,18 +2347,18 @@ function getShareUrl(guestLink){
   return guestLink;
 }
 
-function shareNative(guestLink,title){
+function shareNative(guestLink,title,code){
   const url=getShareUrl(guestLink);
   if(!url){
-    alert('Para compartir el link necesitás publicar la app en internet (netlify.com/drop). Por ahora podés copiar el código de la lista y mandárselo.');
+    alert('Para compartir el link necesitás publicar la app en internet (netlify.com/drop). Por ahora podés copiar el código: '+code);
     return;
   }
-  const txt=`🎁 ¡Ayudame eligiendo un regalo! Entrá a la lista: `;
+  const msg=`🎁 Lista de regalos: ${title}\n\n📲 Entrá desde este link:\n${url}\n\nO usá el código: ${code||''}`;
   if(navigator.share){
-    navigator.share({title,text:txt,url}).catch(()=>{});
+    navigator.share({title:'Lista de regalos: '+title, text:msg, url:url}).catch(()=>{});
   } else {
-    copyText(url);
-    alert('Link copiado. Pegalo en WhatsApp, Instagram o donde quieras.');
+    navigator.clipboard&&navigator.clipboard.writeText(msg);
+    alert('Mensaje copiado con el link y el código.');
   }
 }
 
@@ -2471,6 +2448,138 @@ function showFAQ(){
     <button data-a="closeModal" style="width:100%;margin-top:8px">Entendido ✓</button>
   </div>`;
   document.body.appendChild(modal);
+}
+
+function showContact(){
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
+    <h3 style="margin:0 0 16px;text-align:center">✉️ Contacto</h3>
+
+    <div style="background:#f0f7f0;border-radius:10px;padding:16px;margin-bottom:12px;text-align:center">
+      <p style="margin:0 0 6px;font-size:.88rem;color:var(--muted)">¿Tenés dudas, sugerencias o algo para contarnos?</p>
+      <a href="mailto:contacto@elregalo.com.ar"
+        style="display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:10px;font-size:.95rem;font-weight:700;text-decoration:none;margin-top:4px">
+        ✉️ contacto@elregalo.com.ar
+      </a>
+      <p style="margin:10px 0 0;font-size:.78rem;color:var(--muted)">Respondemos a la brevedad 🙂</p>
+    </div>
+
+    <div style="background:#fff8e1;border:1px solid #f0c040;border-radius:10px;padding:16px;margin-bottom:12px">
+      <p style="margin:0 0 10px;font-size:.95rem;font-weight:700;color:#7a5c00;text-align:center">🇦🇷 ¿Quiénes somos?</p>
+      <p style="margin:0;font-size:.84rem;line-height:1.75;color:#4a3000">
+        Somos <b>dos amigos argentinos</b>.<br><br>
+        Todo empezó por una necesidad real: uno de nosotros quería coordinar los regalos
+        de una fiesta sin arruinar la sorpresa de nadie, sin que nadie compre lo mismo
+        y sin tener que estar preguntando a todos qué iban a regalar.<br><br>
+        Juntos encontramos la solución usando Inteligencia Artificial, y así nació
+        <b>elregalo.com.ar</b> — gratis y hecho con cariño desde Argentina para el mundo. 🎁
+      </p>
+    </div>
+
+    <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:4px;text-align:center">
+      <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.6">
+        elregalo.com.ar · Gratis · Hecho en Argentina 🇦🇷<br>
+        <b>Hecho en Argentina 🇦🇷</b>
+      </p>
+    </div>
+
+    <button data-a="closeModal" style="width:100%;margin-top:12px">Cerrar ✓</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function showHowTo(){
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
+    <h3 style="margin:0 0 14px">❓ ¿Cómo se usa elregalo.com.ar?</h3>
+
+    <div style="background:#f0f7f0;border-radius:10px;padding:14px;margin-bottom:12px">
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#1b4332">🎁 Si querés crear una lista de regalos</p>
+      <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
+        <b>1.</b> Tocá <b>"Crear mi lista"</b> en la pantalla de inicio.<br>
+        <b>2.</b> Completá tu nombre y la ocasión — no hace falta registrarse ni crear cuenta.<br>
+        <b>3.</b> Agregá los regalos que querés recibir — con precio y link si querés.<br>
+        <b>4.</b> Compartí el link o el código con tus seres queridos por WhatsApp, Instagram, etc.<br>
+        <b>5.</b> Guardá bien tu código y contraseña — los necesitás para volver a entrar y editar tu lista.
+      </p>
+    </div>
+
+    <div style="background:#fff3cd;border-radius:10px;padding:14px;margin-bottom:12px">
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#7a5c00">🔗 Si te pasaron un código o link</p>
+      <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
+        <b>1.</b> Tocá <b>"Ya tengo un código"</b> en la pantalla de inicio.<br>
+        <b>2.</b> Ingresá el código (2 letras y 4 números) o abrí el link directamente.<br>
+        <b>3.</b> Elegí un regalo de la lista — queda reservado para que nadie compre lo mismo.<br>
+        <b>4.</b> Confirmá cuando estés seguro — una vez confirmado no se puede cancelar.<br>
+        <b>5.</b> Si querés hacer un aporte de dinero, escribile directamente al organizador para coordinar la transferencia. 😉
+      </p>
+    </div>
+
+    <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:12px">
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700">💡 Tips útiles</p>
+      <p style="margin:0;font-size:.82rem;line-height:1.8">
+        • <b>Viajes y experiencias grandes:</b> Para un viaje de bodas, los quince o cualquier regalo caro, activá "💸 Regalar el valor estimado". Así cada invitado puede aportar lo que quiera y entre todos completar el monto.<br>
+        • Los regalos tachados ya fueron elegidos — no los podés reservar.<br>
+        • Podés aportar dinero parcialmente — varios pueden aportar para el mismo regalo.<br>
+        • Si querés enviar el regalo físicamente, pedile la dirección al organizador desde la app.<br>
+        • La lista funciona desde cualquier celular, computadora o tablet — sin instalar nada.<br>
+        • Funciona desde cualquier parte del mundo.
+      </p>
+    </div>
+
+    <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)">
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 4px">¿Tenés dudas o sugerencias?</p>
+      <a href="mailto:contacto@elregalo.com.ar" style="color:var(--accent);font-size:.85rem;font-weight:600">
+        ✉️ contacto@elregalo.com.ar
+      </a>
+    </div>
+    <button data-a="closeModal" style="width:100%;margin-top:12px">Entendido ✓</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function showPrivacy(){
+  render(`
+    <h1>📄 Términos y Condiciones</h1>
+    <div class="card" style="font-size:.82rem;line-height:1.7;color:#333">
+      <h3 style="color:#1b4332;margin:0 0 6px">1. Descripción del servicio</h3>
+      <p>elregalo.com.ar es una plataforma gratuita para crear y compartir listas de regalos de forma privada. No requiere registro ni datos personales obligatorios.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">2. Uso del servicio</h3>
+      <p>El uso de elregalo.com.ar implica la aceptación de estos términos. El servicio está destinado a mayores de 13 años. Queda prohibido usar la plataforma con fines ilegales, fraudulentos o que perjudiquen a terceros.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">3. Datos y privacidad</h3>
+      <p>Los datos ingresados (nombre, lista de regalos, código de acceso) se almacenan de forma temporal. No vendemos ni compartimos datos personales con terceros. Conforme a la Ley 25.326, el usuario puede eliminar su lista y todos sus datos en cualquier momento desde el panel de organizador.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">4. Eliminación automática</h3>
+      <p>Las listas se eliminan automáticamente a los 37 días de su creación, o 7 días después del evento indicado. elregalo.com.ar no se responsabiliza por la pérdida de datos una vez eliminadas.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">5. Transferencias de dinero</h3>
+      <p>elregalo.com.ar no interviene en ninguna transferencia económica entre usuarios. Las coordinaciones de pago se realizan directamente entre las partes. La plataforma no almacena alias, CBU ni datos bancarios.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">6. Modificaciones del servicio</h3>
+      <p><b>elregalo.com.ar se reserva el derecho de modificar, suspender o discontinuar el servicio, total o parcialmente, en cualquier momento y sin previo aviso.</b></p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">7. Modificaciones de los Términos</h3>
+      <p><b>Estos Términos y Condiciones pueden ser actualizados en cualquier momento. Los cambios entran en vigencia desde su publicación en elregalo.com.ar. El uso continuado del servicio implica la aceptación de los nuevos términos.</b></p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">8. Limitación de responsabilidad</h3>
+      <p>elregalo.com.ar no se responsabiliza por daños directos o indirectos derivados del uso del servicio, pérdida de datos, o interrupciones del servicio.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">9. Propiedad intelectual</h3>
+      <p>El nombre, logo y diseño de elregalo.com.ar son propiedad de sus creadores. Queda prohibida su reproducción sin autorización expresa.</p>
+
+      <h3 style="color:#1b4332;margin:12px 0 6px">10. Contacto</h3>
+      <p>Para consultas o reclamos: a través del formulario de Contacto disponible en la app.</p>
+
+      <p style="margin-top:16px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--line);padding-top:12px">
+        © 2026 elregalo.com.ar — Hecho en Argentina por Agus y Rodo.<br>Todos los derechos reservados.
+      </p>
+    </div>
+    <button class="ghost" data-a="home" style="margin-top:12px;width:100%">← Volver</button>
+  `);
 }
 
 function showContact(){
