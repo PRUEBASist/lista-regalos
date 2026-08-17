@@ -1036,7 +1036,7 @@ async function renderOwner(code,step){
 let _ownerStep = 1;
 
 function ownerStepContent(data, code, guestLink, step){
-  const STEPS = ['📋 Mis datos', '🎁 Lista de deseos', '🚀 Compartir'];
+  const STEPS = ['💡 Cómo recibís', '🎁 Lista de deseos', '🚀 Compartir'];
 
   // Indicador de pasos
   const stepBar = `
@@ -1125,7 +1125,7 @@ function ownerStepContent(data, code, guestLink, step){
       ${ownerGiftList(data,code)}
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Mis datos</button>
+      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Cómo recibís</button>
       <button data-a="ownerStep" data-x="3" data-y="${esc(code)}" style="flex:2;padding:14px;font-size:1rem">Siguiente → Compartir 🚀</button>
     </div>`;
 
@@ -1163,6 +1163,9 @@ function ownerStepContent(data, code, guestLink, step){
         </button>
       </div>
     </div>
+    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;font-size:1rem;margin-top:4px">
+      ← Lista de deseos
+    </button>
 `;
 }
 
