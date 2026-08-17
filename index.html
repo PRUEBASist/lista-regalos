@@ -559,9 +559,41 @@ function dispatch(a,x,y){
     'ownerStep':()=>{ _ownerStep=parseInt(x); renderOwner(y,parseInt(x)); },
 
     'copyCode':()=>copyText(x),
-    'downloadQR':()=>shareQRCard(
-      `https://elregalo.com.ar/#g=${x}`, y, x
-    ),
+    'downloadQR':()=>{
+      const code2=x, owner=y;
+      const m=document.createElement('div');
+      m.className='modal-bg';
+      m.innerHTML=`<div class="modal">
+        <h3 style="margin:0 0 8px;color:#1b4332">⬇️ Descargar tarjeta QR</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
+          Se genera una tarjeta con el QR de tu lista para que la guardes e imprimas o mandes.
+        </p>
+        <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
+          <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
+          <input id="dlAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
+        </div>
+        <button id="btnDlConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">⬇️ Descargar</button>
+        <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
+      </div>`;
+      document.body.appendChild(m);
+      document.getElementById('btnDlConfirm').addEventListener('click',async function(){
+        const alias=((document.getElementById('dlAlias')||{}).value||'').trim();
+        this.textContent='⏳ Generando...'; this.disabled=true;
+        try{
+          const {dataUrl}=await generateQRCard(code2,owner,alias);
+          m.remove();
+          try{
+            const a=document.createElement('a');
+            a.href=dataUrl;
+            a.download='qr-'+owner.toLowerCase().replace(/\s+/g,'-')+'.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          }catch(e){
+            const w2=window.open('','_blank');
+            if(w2) w2.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;padding:20px"><p style="color:#fff;font-family:sans-serif;margin:0 0 16px;text-align:center">Mantené presionada la imagen → Guardar imagen</p><img src="'+dataUrl+'" style="max-width:95%;border-radius:12px"></body></html>');
+          }
+        }catch(e){alert('Error: '+e.message);}
+      });
+    },
     'printQR':()=>{
       const card=document.getElementById('qrCard');
       if(!card) return;
@@ -569,7 +601,48 @@ function dispatch(a,x,y){
       w.document.write('<!DOCTYPE html><html><head><title>QR elregalo.com.ar</title><style>body{margin:32px;display:flex;justify-content:center;font-family:sans-serif;background:#fff}@media print{body{margin:0}}</style></head><body>'+card.outerHTML+'<script>window.onload=function(){window.print();}<\/script></body></html>');
       w.document.close();
     },
-    'shareNative':()=>shareQRCard(x,y,z),
+    'shareNative':()=>{
+      const guestLink=x, owner=y, code2=z;
+      const m=document.createElement('div');
+      m.className='modal-bg';
+      m.innerHTML=`<div class="modal">
+        <h3 style="margin:0 0 8px;color:#1b4332">📤 Compartir lista</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
+          Se genera una tarjeta con el QR y se abre el menú para elegir por dónde compartirla.
+        </p>
+        <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
+          <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
+          <input id="shAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
+        </div>
+        <button id="btnShConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">📤 Compartir</button>
+        <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
+      </div>`;
+      document.body.appendChild(m);
+      document.getElementById('btnShConfirm').addEventListener('click',async function(){
+        const alias=((document.getElementById('shAlias')||{}).value||'').trim();
+        this.textContent='⏳ Generando...'; this.disabled=true;
+        try{
+          const {dataUrl}=await generateQRCard(code2,owner,alias);
+          const shareLink=`https://elregalo.com.ar/#g=${code2}`;
+          const shareText=`🎁 Lista de regalos de ${owner}\n\nEntrá desde este link:\n${shareLink}\n\nCódigo: ${code2}`;
+          const res=await fetch(dataUrl);
+          const blob=await res.blob();
+          const file=new File([blob],'qr-'+owner+'.png',{type:'image/png'});
+          m.remove();
+          if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+            await navigator.share({files:[file],title:'Lista de '+owner,text:shareText,url:shareLink});
+          } else if(navigator.share){
+            await navigator.share({title:'Lista de '+owner,text:shareText,url:shareLink});
+          } else {
+            const a=document.createElement('a');
+            a.href=dataUrl; a.download='qr-'+owner+'.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            navigator.clipboard&&navigator.clipboard.writeText(shareText);
+            alert('Imagen descargada y texto copiado. Adjuntá la imagen en WhatsApp.');
+          }
+        }catch(e){if(e.name!=='AbortError')alert('Error: '+e.message);}
+      });
+    },
     'shareFacebook':()=>shareFacebook(x),
     'shareX':()=>shareX(x,y),
     'shareInstagram':()=>shareInstagram(x),
@@ -948,14 +1021,7 @@ async function renderOwner(code,step){
       <span class="privacy-link" data-a="showContact">✉️ Contacto</span>
     </footer>`);
   // Auto-save paso 1 (inline)
-  if(step===3){
-    setTimeout(()=>{
-      const qrDiv=document.getElementById('qrPreview');
-      if(qrDiv&&typeof QRCode!=='undefined'){
-        try{new QRCode(qrDiv,{text:`https://elregalo.com.ar/#g=${code}`,width:180,height:180,colorDark:'#1a3d28',colorLight:'#ffffff'});}catch(e){}
-      }
-    },150);
-  }
+
 }
 
 // ── VISTA ORGANIZADOR (wizard por pasos) ──
