@@ -577,7 +577,8 @@ function dispatch(a,x,y,z){
         </p>
         <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
           <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
-          <input id="dlAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
+          <input id="dlAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0 0 8px">
+          <input id="dlAliasName" placeholder="Nombre completo del titular de la cuenta" style="margin:0">
         </div>
         <button id="btnDlConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">⬇️ Descargar</button>
         <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
@@ -585,9 +586,11 @@ function dispatch(a,x,y,z){
       document.body.appendChild(m);
       document.getElementById('btnDlConfirm').addEventListener('click',async function(){
         const alias=((document.getElementById('dlAlias')||{}).value||'').trim();
+        const aliasName=((document.getElementById('dlAliasName')||{}).value||'').trim();
+        if(alias&&!aliasName){alert('Para evitar confusiones (que alguien transfiera a la cuenta equivocada), completá también el nombre completo del titular del alias/CBU.');return;}
         this.textContent='⏳ Generando...'; this.disabled=true;
         try{
-          const {dataUrl}=await generateQRCard(code2,owner,alias);
+          const {dataUrl}=await generateQRCard(code2,owner,alias,aliasName);
           m.remove();
           try{
             const a=document.createElement('a');
@@ -619,7 +622,8 @@ function dispatch(a,x,y,z){
         </p>
         <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
           <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
-          <input id="shAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
+          <input id="shAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0 0 8px">
+          <input id="shAliasName" placeholder="Nombre completo del titular de la cuenta" style="margin:0">
         </div>
         <button id="btnShConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">📤 Compartir</button>
         <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
@@ -627,9 +631,11 @@ function dispatch(a,x,y,z){
       document.body.appendChild(m);
       document.getElementById('btnShConfirm').addEventListener('click',async function(){
         const alias=((document.getElementById('shAlias')||{}).value||'').trim();
+        const aliasName=((document.getElementById('shAliasName')||{}).value||'').trim();
+        if(alias&&!aliasName){alert('Para evitar confusiones (que alguien transfiera a la cuenta equivocada), completá también el nombre completo del titular del alias/CBU.');return;}
         this.textContent='⏳ Generando...'; this.disabled=true;
         try{
-          const {dataUrl}=await generateQRCard(code2,owner,alias);
+          const {dataUrl}=await generateQRCard(code2,owner,alias,aliasName);
           const shareLink=`https://elregalo.com.ar/#g=${code2}`;
           const shareText=`🎁 Lista de regalos de ${owner}\n\nEntrá desde este link:\n${shareLink}\n\nCódigo: ${code2}`;
           const res=await fetch(dataUrl);
@@ -1691,7 +1697,7 @@ async function giftMoney(code,gid){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:1.2rem;font-weight:700;color:#1b4332">$</span>
         <input id="montoAporte" type="text" inputmode="numeric" placeholder="Ej: 50.000"
-          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"
+          oninput="formatAmount(this)"
           style="flex:1;font-size:1rem;font-weight:700">
       </div>
       ${falta>0&&precio>0?`<p style="font-size:.75rem;color:var(--muted);margin:6px 0 0">Podés aportar lo que quieras — falta cubrir $${falta.toLocaleString('es-AR')}</p>`:''}
@@ -2297,7 +2303,7 @@ function getShareUrl(guestLink){
   return guestLink;
 }
 
-async function generateQRCard(code, owner, alias){
+async function generateQRCard(code, owner, alias, aliasName){
   return new Promise((resolve,reject)=>{
     // Generar QR client-side con QRCode.js (sin CORS)
     const tmp=document.createElement('div');
@@ -2370,7 +2376,7 @@ async function generateQRCard(code, owner, alias){
         ctx.fillStyle='#1d5c40'; ctx.font='bold 20px Arial,sans-serif';
         ctx.fillText(alias,230,454);
         ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
-        ctx.fillText('alias / CBU / CVU',230,474);
+        ctx.fillText(aliasName?('a nombre de '+aliasName):'alias / CBU / CVU',230,474);
       }
 
       const sepY=hasAlias?498:400;
