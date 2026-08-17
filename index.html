@@ -1112,132 +1112,31 @@ function ownerStepContent(data, code, guestLink, step){
       <button class="ghost sm" data-a="copyLink" data-x="${esc(guestLink)}" style="width:100%;margin-top:6px">Copiar link</button>
     </div>
     <div class="card" style="text-align:center">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 Descargá y compartí tu QR</p>
-      <p style="font-size:.75rem;color:var(--muted);margin:0 0 14px">Descargalo, agregá tu alias si querés recibir aportes, y mandalo por WhatsApp, Instagram o donde quieras. Quien lo escanea entra directo a tu lista.</p>
-
-      <!-- Tarjetita imprimible -->
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">📱 Tarjeta QR de tu lista</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:0 0 14px">Descargala o compartila directo por WhatsApp, mail o donde quieras.</p>
       <div id="qrCard" style="display:inline-block;background:#fff;border:2px solid var(--accent);border-radius:16px;padding:20px 24px;margin-bottom:14px">
         <p style="margin:0 0 2px;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Lista de regalos de</p>
         <p style="margin:0 0 12px;font-size:1.1rem;font-weight:800;color:#1b4332">${esc(data.owner)}</p>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&color=1a3d28&bgcolor=ffffff&data=${encodeURIComponent(guestLink)}"
-             style="width:180px;height:180px;display:block;margin:0 auto 12px;border-radius:8px"
-             alt="QR de la lista">
+        <div id="qrPreview" style="width:180px;height:180px;margin:0 auto 12px;background:#fff;display:flex;align-items:center;justify-content:center">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=1a3d28&bgcolor=ffffff&data=${encodeURIComponent(guestLink)}"
+             style="width:180px;height:180px;border-radius:8px" alt="QR">
+      </div>
         <p style="margin:0 0 2px;font-size:.78rem;color:var(--muted)">Escaneá para ver y elegir regalos</p>
         <p style="margin:0 0 6px;font-size:.7rem;color:var(--muted)">Código: <b>${esc(code)}</b></p>
         <p style="margin:0;font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.03em">elregalo.com.ar</p>
       </div>
-
-      <div style="display:grid;grid-template-columns:1fr;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button data-a="downloadQR" data-x="${esc(code)}" data-y="${esc(data.owner)}"
-          style="padding:10px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:.82rem;cursor:pointer;font-weight:600">
+          style="padding:12px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:.88rem;cursor:pointer;font-weight:700">
           ⬇️ Descargar
         </button>
-
-      </div>
-    </div>
-    <div class="card" style="background:#f0f7f0;border-color:var(--accent)">
-      <h3 style="margin:0 0 8px;color:#1b4332">🚀 Compartir la lista</h3>
-      <p style="font-size:.8rem;color:var(--muted);margin:0 0 12px">Mandásela a tus amigos para que elijan qué regalarte.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.title)}" data-z="${esc(code)}"
-          style="background:#25D366;border:none;color:#fff;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          💬 WhatsApp
-        </button>
-        <button data-a="shareOther" data-x="${esc(guestLink)}" data-y="${esc(data.title)}"
-          style="background:#fff;border:1px solid var(--line);color:#333;padding:12px;border-radius:8px;font-size:.88rem;cursor:pointer">
-          ⋯ Más opciones
+        <button data-a="shareNative" data-x="${esc(guestLink)}" data-y="${esc(data.owner)}" data-z="${esc(code)}"
+          style="padding:12px;border-radius:10px;border:none;background:#1d5c40;color:#fff;font-size:.88rem;cursor:pointer;font-weight:700">
+          📤 Compartir
         </button>
       </div>
     </div>
-    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;margin-top:4px">← Atrás a la lista</button>`;
-
-  return '';
-}
-
-async function renderOwner(code, step){
-  step = step || _ownerStep || 1;
-  _ownerStep = step;
-  // Siempre leer fresco de Supabase para el organizador
-  const data=await sGetFresh('ev:'+code);
-  if(!data){render('<div class="card">Lista no encontrada.</div>');return;}
-  if(isExpired(data)){render(`<div class="card" style="text-align:center;padding:24px"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><h2 style="margin:0 0 8px;color:var(--accent)">Esta lista expiró</h2><p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">Las listas duran 37 días y se borran automáticamente.</p><button data-a="home">Volver al inicio</button></div>`);return;}
-  const BASE_URL='https://elregalo.com.ar/';
-  const guestLink=BASE_URL+'#g='+code;
-  const inGrace=isInGrace(data);
-  const eventEnd=getEventEnd(data);
-  const daysLeft=Math.max(0,Math.ceil((eventEnd-Date.now())/(24*60*60*1000)));
-  const graceDaysLeft=Math.max(0,Math.ceil((eventEnd+7*24*60*60*1000-Date.now())/(24*60*60*1000)));
-  const eventDateStr=data.eventDate?new Date(data.eventDate).toLocaleDateString('es-AR',{day:'numeric',month:'long'}):null;
-  const expiryWarning=inGrace?`
-    <div style="background:#e8f5e9;border:2px solid var(--accent);border-radius:12px;padding:14px;margin-bottom:12px">
-      <p style="margin:0 0 8px;font-size:.92rem;font-weight:700;color:#1b4332">🎉 ¡El evento pasó! Período de gracia — ${graceDaysLeft} días restantes</p>
-      <p style="margin:0 0 10px;font-size:.82rem;color:#2d6a4f;line-height:1.5">
-        Ahora podés ver quién te regaló cada cosa para poder agradecerles.<br>
-        <b>La app no guarda contactos</b> — usá los nombres para buscarlos en WhatsApp o Instagram.
-      </p>
-      ${data.revealed?'':
-      `<button data-a="revealGivers" data-x="${esc(code)}"
-        style="width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600">
-        🎁 Ver quién regaló cada cosa
-      </button>`}
-    </div>`:
-    daysLeft<=5?`
-    <div style="background:#fbe9e1;border:1px solid #e07050;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.82rem;color:#7a3025">
-      ⚠️ Tu lista vence en <b>${daysLeft} día${daysLeft!==1?'s':''}</b>. Después se borra automáticamente.
-    </div>`:'';
-  render(`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <h1 style="margin:0;font-size:1.3rem">🎁 ${esc(data.title)}</h1>
-    </div>
-    <p class="sub" style="margin-bottom:8px">Panel del organizador · ${inGrace?"Período de gracia":eventDateStr?"Evento: "+eventDateStr+" · "+daysLeft+" días restantes":daysLeft+" días restantes"}</p>
-    ${expiryWarning}
-    ${ownerStepContent(data,code,guestLink,step)}
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="ghost" data-a="confirmExit" data-x="${esc(code)}" style="flex:1;padding:12px;font-size:.9rem">🚪 Salir</button>
-      <button class="ghost" data-a="deleteList" data-x="${esc(code)}"
-        style="flex:1;padding:12px;font-size:.9rem;color:#c0392b;border-color:#c0392b">
-        🗑️ Borrar lista
-      </button>
-    </div>
-    <footer>elregalo.com.ar · Gratis<br>Hecho en Argentina por Agus - Rodo<br>
-<span class="privacy-link" data-a="showHowTo" style="margin-right:12px">❓ Cómo se usa</span>
-<span class="privacy-link" data-a="showPrivacy" style="margin-right:12px">📄 Términos y Privacidad</span>
-<span class="privacy-link" data-a="showContact">✉️ Contacto</span></footer>
-  `);
-  clearTimeout(window._ownerTimer);
-  window._ownerTimer=setTimeout(async()=>{
-    if(getHash().o===code && _ownerStep===1){
-      const d=await sGet('ev:'+code);
-      if(d){
-        const giftsCard=document.querySelector('[data-a="addGift"]')?.closest('.card')?.nextElementSibling;
-        if(giftsCard) giftsCard.innerHTML='<h3 style="margin:0 0 10px">Lista de regalos ('+d.gifts.length+')</h3>'+ownerGiftList(d,code);
-      }
-    }
-  },5000);
-}
-
-function moneyDonationsSection(data){
-  const donations=(data.moneyDonations||[]);
-  if(!donations.length) return '';
-  return `
-    <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
-      <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1b4332">
-        💸 Aportes recibidos (${donations.length})
-      </p>
-      <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted)">Confirmá con cada persona que la transferencia te llegó correctamente.</p>
-      ${donations.slice().reverse().map(d=>`
-        <div style="border:1px solid #a8d5b5;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div>
-            <p style="margin:0 0 2px;font-size:.85rem;font-weight:700;color:#1b4332">
-              👤 ${esc(d.gifterName||d.name||'Anónimo')}
-            </p>
-            <p style="margin:0;font-size:.78rem;color:#555">
-              aportó <b>${esc(d.amount||'$'+(d.amountNum||0))}</b> para <b>${esc(d.giftName||'un regalo')}</b>
-            </p>
-          </div>
-          <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">${new Date(d.date).toLocaleDateString('es-AR')}</span>
-        </div>`).join('')}
-    </div>`;
+`;
 }
 
 function addrRequestsSection(data,code){
