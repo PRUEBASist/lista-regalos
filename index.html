@@ -559,108 +559,9 @@ function dispatch(a,x,y){
     'ownerStep':()=>{ _ownerStep=parseInt(x); renderOwner(y,parseInt(x)); },
 
     'copyCode':()=>copyText(x),
-    'downloadQR':async()=>{
-      const owner=y, code2=x;
-      // Mostrar modal previo con campo de CBU/alias
-      const m=document.createElement('div');
-      m.className='modal-bg';
-      m.innerHTML=`<div class="modal">
-        <h3 style="margin:0 0 8px;color:#1b4332">⬇️ Descargar QR</h3>
-        <p style="font-size:.82rem;color:var(--muted);margin:0 0 14px;line-height:1.5">
-          Este QR lo podés imprimir o mostrar en el evento para que tus invitados accedan a tu lista fácilmente. Escaneándolo entran directo, sin necesidad del código.
-        </p>
-        <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
-          <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias o CBU? (opcional)</p>
-          <p style="margin:0 0 8px;font-size:.75rem;color:var(--muted);line-height:1.4">Se imprime en la tarjeta para que te puedan transferir. <b>No se guarda en ningún lado.</b></p>
-          <input id="qrAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
-        </div>
-        <button id="btnDoDownload" style="width:100%;padding:14px;font-weight:700;font-size:.95rem;margin-bottom:8px">⬇️ Descargar tarjeta</button>
-        <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
-      </div>`;
-      document.body.appendChild(m);
-      document.getElementById('btnDoDownload').addEventListener('click',()=>{
-        const alias=((document.getElementById('qrAlias')||{}).value||'').trim();
-        m.remove();
-        // Generar canvas
-        const link=`https://elregalo.com.ar/#g=${code2}`;
-        const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=1d5c40&bgcolor=ffffff&data=${encodeURIComponent(link)}`;
-        const hasAlias=!!alias;
-        const H=hasAlias?600:510;
-        const canvas=document.createElement('canvas');
-        canvas.width=460; canvas.height=H;
-        const ctx=canvas.getContext('2d');
-        // Fondo blanco con borde redondeado
-        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,460,H);
-        ctx.strokeStyle='#1d5c40'; ctx.lineWidth=5;
-        if(ctx.roundRect){ctx.beginPath();ctx.roundRect(2,2,456,H-4,18);ctx.stroke();}
-        // Header verde
-        ctx.fillStyle='#1d5c40';
-        ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(2,2,456,80,{upperLeft:18,upperRight:18,lowerLeft:0,lowerRight:0});
-        else ctx.rect(2,2,456,80);
-        ctx.fill();
-        ctx.fillStyle='#ffffff';
-        ctx.font='500 13px Arial,sans-serif'; ctx.textAlign='center';
-        ctx.fillText('LISTA DE REGALOS DE',230,28);
-        ctx.font='bold 26px Arial,sans-serif';
-        // Truncar nombre si es muy largo
-        let ownerText=owner.toUpperCase();
-        ctx.fillText(ownerText,230,62);
-        // QR sobre fondo blanco
-        const img=new Image(); img.crossOrigin='anonymous'; img.referrerPolicy='no-referrer';
-        img.onload=()=>{
-          ctx.drawImage(img,105,94,250,250);
-          // Texto bajo QR
-          ctx.fillStyle='#1d5c40'; ctx.font='bold 15px Arial,sans-serif';
-          ctx.fillText('Escaneá para ver y elegir regalos',230,364);
-          ctx.fillStyle='#444'; ctx.font='13px Arial,sans-serif';
-          ctx.fillText('Código de lista: '+code2,230,386);
-          // Alias si tiene
-          if(hasAlias){
-            // Caja alias
-            ctx.fillStyle='#f0f7f0';
-            ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
-            ctx.fill();
-            ctx.strokeStyle='#c8e6d4'; ctx.lineWidth=1.5;
-            ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(30,404,400,80,10); else ctx.rect(30,404,400,80);
-            ctx.stroke();
-            ctx.fillStyle='#555'; ctx.font='12px Arial,sans-serif';
-            ctx.fillText('Para hacer tu aporte, transferí a:',230,428);
-            ctx.fillStyle='#1d5c40'; ctx.font='bold 20px Arial,sans-serif';
-            ctx.fillText(alias,230,458);
-            ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
-            ctx.fillText('alias / CBU / CVU',230,476);
-          }
-          // Separador
-          const sepY=hasAlias?500:406;
-          ctx.strokeStyle='#e0e0e0'; ctx.lineWidth=1;
-          ctx.beginPath(); ctx.moveTo(30,sepY); ctx.lineTo(430,sepY); ctx.stroke();
-          // Footer
-          const fY=hasAlias?524:428;
-          ctx.fillStyle='#1d5c40'; ctx.font='bold 16px Arial,sans-serif';
-          ctx.fillText('elregalo.com.ar',230,fY);
-          ctx.fillStyle='#888'; ctx.font='12px Arial,sans-serif';
-          ctx.fillText('Gratis · Sin registro · Hecho en Argentina',230,fY+22);
-          ctx.fillStyle='#aaa'; ctx.font='11px Arial,sans-serif';
-          ctx.fillText('Creá tu propia lista en elregalo.com.ar',230,fY+40);
-          // iOS Safari no soporta a.click() para descargar — abrir en nueva pestaña
-          const dataUrl=canvas.toDataURL('image/png');
-          try{
-            const a=document.createElement('a');
-            a.download=`qr-${owner.toLowerCase().replace(/\s+/g,'-')}.png`;
-            a.href=dataUrl; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          }catch(e){
-            // Fallback iOS
-            const w2=window.open('','_blank');
-            if(w2) w2.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px"><p style="color:#fff;font-family:sans-serif;margin:0 0 16px;font-size:14px;text-align:center">Mantené presionada la imagen y elegí \'Guardar imagen\'</p><img src="'+dataUrl+'" style="max-width:95%;border-radius:12px"></body></html>');
-          }
-        };
-        img.onerror=()=>{ window.open(qrUrl,'_blank'); };
-        img.src=qrUrl;
-      });
-    },
+    'downloadQR':()=>shareQRCard(
+      `https://elregalo.com.ar/#g=${x}`, y, x
+    ),
     'printQR':()=>{
       const card=document.getElementById('qrCard');
       if(!card) return;
@@ -1005,6 +906,58 @@ async function joinList(){
   } else { setHash({g:code}); renderGuest(code); }
 }
 
+async function renderOwner(code,step){
+  step=step||_ownerStep||1;
+  _ownerStep=step;
+  render('<div style="text-align:center;padding:40px"><p style="color:var(--muted)">Cargando...</p></div>');
+  const data=await sGetFresh('ev:'+code);
+  if(!data){render('<div class="card"><p>Lista no encontrada.</p><button data-a="home" class="ghost" style="width:100%;margin-top:12px">← Volver</button></div>');return;}
+  if(isExpired(data)){
+    render(`<div class="card" style="text-align:center">
+      <div style="font-size:2rem;margin-bottom:8px">⏰</div>
+      <h2 style="color:#c0392b">Lista expirada</h2>
+      <p style="color:var(--muted)">Esta lista ya venció y fue eliminada automáticamente.</p>
+      <button data-a="home" class="ghost" style="width:100%;margin-top:12px">← Volver al inicio</button>
+    </div>`);
+    return;
+  }
+  const guestLink=`https://elregalo.com.ar/#g=${esc(code)}`;
+  const now=Date.now();
+  const end=getEventEnd(data);
+  const daysLeft=Math.ceil((end-now)/(1000*60*60*24));
+  const expiryWarning=isInGrace(data)?
+    `<div style="background:#fdecea;border:1px solid #e57373;border-radius:10px;padding:12px;margin-bottom:12px">⚠️ Tu lista <b>venció</b>. Tenés 7 días para ver quién regaló qué.</div>`:
+    (daysLeft<=5&&daysLeft>0?`<div style="background:#fff3e0;border:1px solid #ff9800;border-radius:10px;padding:12px;margin-bottom:12px">⚠️ Tu lista vence en <b>${daysLeft} día${daysLeft===1?'':'s'}</b>. Después se borra automáticamente.</div>`:'');
+  const eventDateStr=data.eventDate?new Date(data.eventDate).toLocaleDateString('es-AR',{day:'numeric',month:'long'}):'–';
+  const revealBtn=isInGrace(data)?`<div style="background:#e8f4fd;border:1px solid #aed6f1;border-radius:10px;padding:12px;margin-bottom:12px">
+    <p style="margin:0 0 8px;font-weight:700;color:#1a3d28">🎁 ¿Querés ver quién te regaló cada cosa?</p>
+    <button data-a="revealGivers" data-x="${esc(code)}" style="width:100%;padding:12px;font-weight:700;background:#1d5c40;color:#fff;border:none;border-radius:8px;cursor:pointer">🎁 Ver quién regaló cada cosa</button>
+  </div>`:'';
+  render(`
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">Panel del organizador · Evento: ${eventDateStr} · ${daysLeft>0?daysLeft+' días restantes':'Evento pasado'}</div>
+    <h1>${esc(data.title||'Mi lista')}</h1>
+    ${expiryWarning}${revealBtn}
+    ${ownerStepContent(data,code,guestLink,step)}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="ghost" data-a="confirmExit" data-x="${esc(code)}" style="flex:1;padding:12px;font-size:.9rem">🚪 Salir</button>
+      <button class="ghost" data-a="deleteList" data-x="${esc(code)}" style="flex:1;padding:12px;font-size:.9rem;color:#c0392b;border-color:#c0392b">🗑️ Borrar lista</button>
+    </div>
+    <footer>elregalo.com.ar · Gratis<br>Hecho en Argentina por Agus - Rodo<br>
+      <span class="privacy-link" data-a="showHowTo" style="margin-right:12px">❓ Cómo se usa</span>
+      <span class="privacy-link" data-a="showPrivacy" style="margin-right:12px">📄 Términos</span>
+      <span class="privacy-link" data-a="showContact">✉️ Contacto</span>
+    </footer>`);
+  // Auto-save paso 1 (inline)
+  if(step===3){
+    setTimeout(()=>{
+      const qrDiv=document.getElementById('qrPreview');
+      if(qrDiv&&typeof QRCode!=='undefined'){
+        try{new QRCode(qrDiv,{text:`https://elregalo.com.ar/#g=${code}`,width:180,height:180,colorDark:'#1a3d28',colorLight:'#ffffff'});}catch(e){}
+      }
+    },150);
+  }
+}
+
 // ── VISTA ORGANIZADOR (wizard por pasos) ──
 let _ownerStep = 1;
 
@@ -1137,6 +1090,26 @@ function ownerStepContent(data, code, guestLink, step){
       </div>
     </div>
 `;
+}
+
+function moneyDonationsSection(data){
+  const donations=(data.moneyDonations||[]);
+  if(!donations.length) return '';
+  return `
+    <div class="card" style="border:2px solid var(--accent);background:#f0f7f0">
+      <p style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#1b4332">
+        💸 Aportes recibidos (${donations.length})
+      </p>
+      <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted)">Confirmá con cada persona que la transferencia te llegó correctamente.</p>
+      ${donations.slice().reverse().map(d=>`
+        <div style="border:1px solid #a8d5b5;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <p style="margin:0 0 2px;font-size:.85rem;font-weight:700;color:#1b4332">👤 ${esc(d.gifterName||d.name||'Anónimo')}</p>
+            <p style="margin:0;font-size:.78rem;color:#555">aportó <b>${esc(d.amount||'$'+(d.amountNum||0))}</b> para <b>${esc(d.giftName||'un regalo')}</b></p>
+          </div>
+          <span style="font-size:.7rem;color:var(--muted);white-space:nowrap">${new Date(d.date).toLocaleDateString('es-AR')}</span>
+        </div>`).join('')}
+    </div>`;
 }
 
 function addrRequestsSection(data,code){
@@ -2483,84 +2456,55 @@ function showFAQ(){
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
       <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Necesito crear una cuenta?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">No. Ni el organizador ni los invitados necesitan registrarse. Solo entrás y listo.</p>
+      <p style="font-size:.82rem;color:#444;margin:0">No. Ni el organizador ni los invitados necesitan registrarse ni dar ningún dato personal. Solo entrás y listo.</p>
+    </div>
+
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Qué datos guarda la app?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Solo el nombre del organizador, el nombre de la lista, los regalos agregados y los nombres de quienes eligen regalos. No se guarda email, teléfono, dirección, alias bancario ni ningún dato sensible.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
       <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿El organizador sabe quién eligió cada regalo?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">No. El organizador solo ve que un regalo fue reservado, pero no quién lo eligió. La privacidad es total.</p>
-    </div>
-
-    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo cambiar de opinión después de reservar?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">Sí, podés cancelar la reserva antes de confirmarla definitivamente. Una vez confirmada, ya no se puede cancelar.</p>
+      <p style="font-size:.82rem;color:#444;margin:0">No durante el evento — la privacidad es total. Después del evento tenés 7 días para activar la opción "Ver quién regaló cada cosa" desde tu panel.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
       <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cuánto tiempo dura la lista?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">30 días desde que se crea. El organizador también puede borrarla antes desde su panel.</p>
+      <p style="font-size:.82rem;color:#444;margin:0">37 días desde que se crea, o 7 días después del evento si pusiste fecha. El organizador puede borrarla antes desde su panel en cualquier momento.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cómo recibe el dinero si activo "Regalar el valor estimado"?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">Cuando alguien quiere hacer un aporte, la app le pide que le escriba directamente al organizador para pedirle el alias o CBU. La transferencia se hace entre personas — elregalo.com.ar no interviene ni guarda datos bancarios.</p>
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo agregar productos escaneando el código de barras?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí. En "Agregar regalo" tocá el botón 📷 Escanear. Si el producto está en la base de datos, se completa automáticamente. Si no está, lo cargás a mano.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Es seguro?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">Sí. No guardamos datos personales sensibles. Los datos se almacenan de forma segura y se borran automáticamente al vencer la lista.</p>
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cómo se coordina el envío del regalo?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Todo se coordina directamente entre las personas por fuera de la app — por WhatsApp, teléfono o como prefieran. La app no gestiona envíos ni pagos.</p>
     </div>
 
     <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo saber quién me regaló qué después del evento?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">Sí. Después del evento tenés 7 días para tocar "Ver quién regaló cada cosa" en tu panel. Ahí aparecen los nombres de cada persona junto al regalo que eligió, para que puedas agradecerles.</p>
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Cómo se hacen los aportes de dinero?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Cuando alguien quiere aportar dinero, la app registra el monto y le pide que contacte directamente al organizador para pedirle el alias o CBU. La transferencia se hace entre personas — la app no interviene ni guarda datos bancarios.</p>
     </div>
 
-    <div style="padding-bottom:4px;margin-bottom:12px">
-      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Tienen soporte o contacto?</p>
-      <p style="font-size:.82rem;color:#444;margin:0">Sí, escribinos a <b>contacto@elregalo.com.ar</b> y te respondemos.</p>
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo compartir la lista por WhatsApp?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí. Desde el paso "Compartir" podés descargar o compartir una tarjeta con el QR de tu lista — con tu alias incluido si querés — directamente por WhatsApp, mail o cualquier app.</p>
     </div>
 
-    <button data-a="closeModal" style="width:100%;margin-top:8px">Entendido ✓</button>
-  </div>`;
-  document.body.appendChild(modal);
-}
-
-function showContact(){
-  const modal=document.createElement('div');
-  modal.className='modal-bg';
-  modal.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
-    <h3 style="margin:0 0 16px;text-align:center">✉️ Contacto</h3>
-
-    <div style="background:#f0f7f0;border-radius:10px;padding:16px;margin-bottom:12px;text-align:center">
-      <p style="margin:0 0 6px;font-size:.88rem;color:var(--muted)">¿Tenés dudas, sugerencias o algo para contarnos?</p>
-      <a href="mailto:contacto@elregalo.com.ar"
-        style="display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:10px;font-size:.95rem;font-weight:700;text-decoration:none;margin-top:4px">
-        ✉️ contacto@elregalo.com.ar
-      </a>
-      <p style="margin:10px 0 0;font-size:.78rem;color:var(--muted)">Respondemos a la brevedad 🙂</p>
+    <div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo cancelar una reserva?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Podés cancelar antes de confirmar definitivamente. Una vez que confirmás, no se puede deshacer — el regalo queda tomado.</p>
     </div>
 
-    <div style="background:#fff8e1;border:1px solid #f0c040;border-radius:10px;padding:16px;margin-bottom:12px">
-      <p style="margin:0 0 10px;font-size:.95rem;font-weight:700;color:#7a5c00;text-align:center">🇦🇷 ¿Quiénes somos?</p>
-      <p style="margin:0;font-size:.84rem;line-height:1.75;color:#4a3000">
-        Somos <b>dos amigos argentinos</b>.<br><br>
-        Todo empezó por una necesidad real: uno de nosotros quería coordinar los regalos
-        de una fiesta sin arruinar la sorpresa de nadie, sin que nadie compre lo mismo
-        y sin tener que estar preguntando a todos qué iban a regalar.<br><br>
-        Juntos encontramos la solución usando Inteligencia Artificial, y así nació
-        <b>elregalo.com.ar</b> — gratis y hecho con cariño desde Argentina para el mundo. 🎁
-      </p>
+    <div style="padding-bottom:4px">
+      <p style="font-size:.88rem;font-weight:700;margin:0 0 4px">¿Puedo borrar mi lista y mis datos?</p>
+      <p style="font-size:.82rem;color:#444;margin:0">Sí. Desde el panel del organizador podés borrar toda la lista con un toque. Esto elimina todos los datos de forma permanente e inmediata.</p>
     </div>
 
-    <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:4px;text-align:center">
-      <p style="margin:0;font-size:.82rem;color:var(--muted);line-height:1.6">
-        elregalo.com.ar · Gratis · Hecho en Argentina 🇦🇷<br>
-        <b>Hecho en Argentina 🇦🇷</b>
-      </p>
-    </div>
-
-    <button data-a="closeModal" style="width:100%;margin-top:12px">Cerrar ✓</button>
+    <button class="ghost" style="width:100%;margin-top:16px" onclick="this.closest('.modal-bg').remove()">← Cerrar</button>
   </div>`;
   document.body.appendChild(modal);
 }
@@ -2569,49 +2513,51 @@ function showHowTo(){
   const modal=document.createElement('div');
   modal.className='modal-bg';
   modal.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
-    <h3 style="margin:0 0 14px">❓ ¿Cómo se usa elregalo.com.ar?</h3>
+    <h3 style="margin:0 0 14px">📖 ¿Cómo se usa elregalo.com.ar?</h3>
 
     <div style="background:#f0f7f0;border-radius:10px;padding:14px;margin-bottom:12px">
-      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#1b4332">🎁 Si querés crear una lista de regalos</p>
-      <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#1b4332">🎁 Para crear tu lista de regalos</p>
+      <p style="margin:0;font-size:.82rem;line-height:1.7">
         <b>1.</b> Tocá <b>"Crear mi lista"</b> en la pantalla de inicio.<br>
-        <b>2.</b> Completá tu nombre y la ocasión — no hace falta registrarse ni crear cuenta.<br>
-        <b>3.</b> Agregá los regalos que querés recibir — con precio y link si querés.<br>
-        <b>4.</b> Compartí el link o el código con tus seres queridos por WhatsApp, Instagram, etc.<br>
-        <b>5.</b> Guardá bien tu código y contraseña — los necesitás para volver a entrar y editar tu lista.
+        <b>2.</b> Escribí el nombre de la persona que recibe los regalos, elegí la ocasión y la fecha del evento.<br>
+        <b>3.</b> Guardá el <b>código</b> y la <b>contraseña</b> que te aparecen — los necesitás para volver a entrar.<br>
+        <b>4.</b> Agregá los regalos que querés recibir. Podés poner nombre, precio y link. También podés <b>escanear el código de barras</b> 📷 de un producto para cargarlo automáticamente.<br>
+        <b>5.</b> Compartí el link, el código o la tarjeta QR con tus invitados por WhatsApp o donde quieras.
       </p>
     </div>
 
     <div style="background:#fff3cd;border-radius:10px;padding:14px;margin-bottom:12px">
-      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#7a5c00">🔗 Si te pasaron un código o link</p>
-      <p style="margin:0 0 4px;font-size:.82rem;line-height:1.6">
-        <b>1.</b> Tocá <b>"Ya tengo un código"</b> en la pantalla de inicio.<br>
-        <b>2.</b> Ingresá el código (2 letras y 4 números) o abrí el link directamente.<br>
-        <b>3.</b> Elegí un regalo de la lista — queda reservado para que nadie compre lo mismo.<br>
-        <b>4.</b> Confirmá cuando estés seguro — una vez confirmado no se puede cancelar.<br>
-        <b>5.</b> Si querés hacer un aporte de dinero, escribile directamente al organizador para coordinar la transferencia. 😉
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#7a5c00">🔗 Para elegir un regalo (como invitado)</p>
+      <p style="margin:0;font-size:.82rem;line-height:1.7">
+        <b>1.</b> Entrá por el link, escaneá el QR, o tocá <b>"Ya tengo un código"</b> e ingresá el código.<br>
+        <b>2.</b> Elegí un regalo de la lista — queda reservado para que nadie compre lo mismo.<br>
+        <b>3.</b> Si querés <b>aportar dinero</b> en vez de comprar el regalo, registrá el monto y coordina la transferencia directamente con el organizador.<br>
+        <b>4.</b> Para envíos físicos o digitales, coordiná directo con el organizador por WhatsApp o como prefieran.<br>
+        <b>5.</b> Una vez que confirmás, no podés cancelar — el regalo queda tomado.
+      </p>
+    </div>
+
+    <div style="background:#f0f7f0;border-radius:10px;padding:14px;margin-bottom:12px">
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700;color:#1b4332">🚀 Para compartir tu lista</p>
+      <p style="margin:0;font-size:.82rem;line-height:1.7">
+        Desde el paso <b>Compartir</b> podés:<br>
+        • Copiar el código o el link directo<br>
+        • Descargar o compartir una <b>tarjeta con el QR</b> de tu lista — con tu alias incluido si querés recibir aportes<br>
+        • Mandársela por WhatsApp, mail, Instagram o donde quieras
       </p>
     </div>
 
     <div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:12px">
-      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700">💡 Tips útiles</p>
-      <p style="margin:0;font-size:.82rem;line-height:1.8">
-        • <b>Viajes y experiencias grandes:</b> Para un viaje de bodas, los quince o cualquier regalo caro, activá "💸 Regalar el valor estimado". Así cada invitado puede aportar lo que quiera y entre todos completar el monto.<br>
-        • Los regalos tachados ya fueron elegidos — no los podés reservar.<br>
-        • Podés aportar dinero parcialmente — varios pueden aportar para el mismo regalo.<br>
-        • Si querés enviar el regalo físicamente, pedile la dirección al organizador desde la app.<br>
-        • La lista funciona desde cualquier celular, computadora o tablet — sin instalar nada.<br>
-        • Funciona desde cualquier parte del mundo.
+      <p style="margin:0 0 8px;font-size:.9rem;font-weight:700">⏰ Duración y privacidad</p>
+      <p style="margin:0;font-size:.82rem;line-height:1.7;color:#555">
+        • Las listas duran <b>37 días</b> o <b>7 días después del evento</b> si pusiste fecha.<br>
+        • Después del evento podés ver <b>quién regaló qué</b> desde tu panel durante 7 días.<br>
+        • La app <b>no guarda</b> email, teléfono, dirección, alias bancario ni datos sensibles.<br>
+        • Podés borrar tu lista y todos tus datos en cualquier momento.
       </p>
     </div>
 
-    <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)">
-      <p style="font-size:.78rem;color:var(--muted);margin:0 0 4px">¿Tenés dudas o sugerencias?</p>
-      <a href="mailto:contacto@elregalo.com.ar" style="color:var(--accent);font-size:.85rem;font-weight:600">
-        ✉️ contacto@elregalo.com.ar
-      </a>
-    </div>
-    <button data-a="closeModal" style="width:100%;margin-top:12px">Entendido ✓</button>
+    <button class="ghost" style="width:100%;margin-top:4px" onclick="this.closest('.modal-bg').remove()">← Cerrar</button>
   </div>`;
   document.body.appendChild(modal);
 }
