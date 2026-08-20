@@ -384,13 +384,7 @@ async function sSet(key,val){
   const code=key.replace('ev:','');
   try{
     if(val===null){
-      const r=await fetch(`${SB_URL}/rest/v1/events?code=eq.${code}`,{method:'DELETE',headers:{...SB_HDR,'Prefer':'return=representation'}});
-      if(r.ok){
-        const deletedRows=await r.json().catch(()=>[]);
-        if(!deletedRows.length) console.warn('Supabase: el DELETE no borró ninguna fila para code='+code+'. Revisá que exista una política RLS de DELETE para el rol usado.');
-      } else {
-        console.warn('Supabase DELETE falló, status',r.status,await r.text().catch(()=>''));
-      }
+      await fetch(`${SB_URL}/rest/v1/events?code=eq.${code}`,{method:'DELETE',headers:SB_HDR});
     } else {
       await fetch(`${SB_URL}/rest/v1/events`,{
         method:'POST',
@@ -450,12 +444,11 @@ document.addEventListener('click',function(e){
   const a=el.getAttribute('data-a');
   const x=el.getAttribute('data-x');
   const y=el.getAttribute('data-y');
-  const z=el.getAttribute('data-z');
-  try{ dispatch(a,x,y,z); }
+  try{ dispatch(a,x,y); }
   catch(err){ console.warn('dispatch error',a,err); }
 });
 
-function dispatch(a,x,y,z){
+function dispatch(a,x,y){
   const map={
     'home':()=>renderHome(),
     'scanAndFill':()=>scanAndFill(),
@@ -463,12 +456,12 @@ function dispatch(a,x,y,z){
     'showContact':()=>showContact(),
     'showFAQ':()=>showFAQ(),
     'revealGivers':async()=>{
-      if(!confirm('¿Confirmas que el evento ya pasó y querés ver quién regaló cada cosa?\n\nEsta acción no se puede deshacer.')) return;
+      if(!confirm('¿Confirmás que el evento ya pasó y querés ver quién regaló cada cosa?\n\nEsta acción no se puede deshacer.')) return;
       const data=await sGet('ev:'+x);
       if(!data) return;
       data.revealed=true;
       await sSet('ev:'+x,data);
-      renderOwner(x);
+      renderOwner(x,2); // Ir directo al paso 2 para ver la lista con los nombres
     },
     'showHowTo':()=>showHowTo(),
     'setCurrency':()=>selectCurrency(x),
@@ -485,7 +478,7 @@ function dispatch(a,x,y,z){
       autoFillTitle();
     },
     'goJoin':()=>renderJoin(),
-    'goLastList':()=>{ const c=lsGet('lastOwnerCode'); if(c){setHash({o:c,step:1});renderOwner(c);} },
+    'goLastList':()=>{ const c=lsGet('lastOwnerCode'); if(c){setHash({o:c});renderOwner(c);} },
     'clearLastList':()=>clearLastList(),
     'sendAddrRequest':()=>sendAddrRequest(x,y),
     'copyAddrReq':()=>copyAddrReqMsg(x,y),
@@ -563,7 +556,7 @@ function dispatch(a,x,y,z){
     'copyLink':()=>copyText(x),
     'copyText':()=>copyText(x),
     'goToOwner':()=>{ _showingCreated=false; setHash({o:x}); renderOwner(x,1); },
-    'ownerStep':()=>{ _ownerStep=parseInt(x); setHash({o:y,step:x}); renderOwner(y,parseInt(x)); },
+    'ownerStep':()=>{ _ownerStep=parseInt(x); renderOwner(y,parseInt(x)); },
 
     'copyCode':()=>copyText(x),
     'downloadQR':()=>{
@@ -577,8 +570,7 @@ function dispatch(a,x,y,z){
         </p>
         <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
           <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
-          <input id="dlAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0 0 8px">
-          <input id="dlAliasName" placeholder="Nombre completo del titular de la cuenta" style="margin:0">
+          <input id="dlAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
         </div>
         <button id="btnDlConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">⬇️ Descargar</button>
         <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
@@ -586,11 +578,9 @@ function dispatch(a,x,y,z){
       document.body.appendChild(m);
       document.getElementById('btnDlConfirm').addEventListener('click',async function(){
         const alias=((document.getElementById('dlAlias')||{}).value||'').trim();
-        const aliasName=((document.getElementById('dlAliasName')||{}).value||'').trim();
-        if(alias&&!aliasName){alert('Para evitar confusiones (que alguien transfiera a la cuenta equivocada), completá también el nombre completo del titular del alias/CBU.');return;}
         this.textContent='⏳ Generando...'; this.disabled=true;
         try{
-          const {dataUrl}=await generateQRCard(code2,owner,alias,aliasName);
+          const {dataUrl}=await generateQRCard(code2,owner,alias);
           m.remove();
           try{
             const a=document.createElement('a');
@@ -622,8 +612,7 @@ function dispatch(a,x,y,z){
         </p>
         <div style="background:#f0f7f0;border:1px solid #c8e6d4;border-radius:10px;padding:12px;margin-bottom:14px">
           <p style="margin:0 0 6px;font-size:.85rem;font-weight:700;color:#1b4332">💸 ¿Querés agregar tu alias para aportes? (opcional)</p>
-          <input id="shAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0 0 8px">
-          <input id="shAliasName" placeholder="Nombre completo del titular de la cuenta" style="margin:0">
+          <input id="shAlias" placeholder="Ej: maria.garcia o CVU 000..." style="margin:0">
         </div>
         <button id="btnShConfirm" style="width:100%;padding:14px;font-weight:700;margin-bottom:8px">📤 Compartir</button>
         <button class="ghost" style="width:100%" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
@@ -631,11 +620,9 @@ function dispatch(a,x,y,z){
       document.body.appendChild(m);
       document.getElementById('btnShConfirm').addEventListener('click',async function(){
         const alias=((document.getElementById('shAlias')||{}).value||'').trim();
-        const aliasName=((document.getElementById('shAliasName')||{}).value||'').trim();
-        if(alias&&!aliasName){alert('Para evitar confusiones (que alguien transfiera a la cuenta equivocada), completá también el nombre completo del titular del alias/CBU.');return;}
         this.textContent='⏳ Generando...'; this.disabled=true;
         try{
-          const {dataUrl}=await generateQRCard(code2,owner,alias,aliasName);
+          const {dataUrl}=await generateQRCard(code2,owner,alias);
           const shareLink=`https://elregalo.com.ar/#g=${code2}`;
           const shareText=`🎁 Lista de regalos de ${owner}\n\nEntrá desde este link:\n${shareLink}\n\nCódigo: ${code2}`;
           const res=await fetch(dataUrl);
@@ -936,7 +923,6 @@ async function createList(){
         resolve();
       });
     });
-    setHash({o:code});
     await renderOwner(code,1);
   }catch(e){
     alert('No se pudo crear la lista. Intentá de nuevo.');
@@ -1042,7 +1028,7 @@ async function renderOwner(code,step){
 let _ownerStep = 1;
 
 function ownerStepContent(data, code, guestLink, step){
-  const STEPS = ['💡 Cómo recibís', '🎁 Lista de deseos', '🚀 Compartir'];
+  const STEPS = ['📋 Mis datos', '🎁 Lista de deseos', '🚀 Compartir'];
 
   // Indicador de pasos
   const stepBar = `
@@ -1082,6 +1068,12 @@ function ownerStepContent(data, code, guestLink, step){
     </button>`;
 
   if(step===2) return stepBar + `
+    ${data.revealed ? `
+    <div style="background:#e8f4fd;border:2px solid #4ade80;border-radius:12px;padding:16px;margin-bottom:14px;text-align:center">
+      <div style="font-size:1.8rem;margin-bottom:6px">🎁</div>
+      <p style="margin:0 0 4px;font-size:1rem;font-weight:700;color:#1b4332">¡Ya podés ver quién te regaló cada cosa!</p>
+      <p style="font-size:.8rem;color:var(--muted);margin:0">Los nombres aparecen debajo de cada regalo confirmado.</p>
+    </div>` : ''}
     ${moneyDonationsSection(data)}
     ${addrRequestsSection(data,code)}
     <div class="card">
@@ -1131,7 +1123,7 @@ function ownerStepContent(data, code, guestLink, step){
       ${ownerGiftList(data,code)}
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Cómo recibís</button>
+      <button class="ghost" data-a="ownerStep" data-x="1" data-y="${esc(code)}" style="flex:1;padding:14px">← Mis datos</button>
       <button data-a="ownerStep" data-x="3" data-y="${esc(code)}" style="flex:2;padding:14px;font-size:1rem">Siguiente → Compartir 🚀</button>
     </div>`;
 
@@ -1169,9 +1161,6 @@ function ownerStepContent(data, code, guestLink, step){
         </button>
       </div>
     </div>
-    <button class="ghost" data-a="ownerStep" data-x="2" data-y="${esc(code)}" style="width:100%;padding:14px;font-size:1rem;margin-top:4px">
-      ← Lista de deseos
-    </button>
 `;
 }
 
@@ -1357,7 +1346,10 @@ function ownerGiftList(data,code){
         ${g.claimedBy
           ? `<div class="claimed">
               ${g.claimedConfirmed?'🔒 Confirmado':'⏳ Reservado'}
-              ${data.revealed&&g.claimedBy?` · <b style="color:#1b4332">Regalo de: ${esc(g.claimedBy)}</b>`:''}
+              ${data.revealed&&g.claimedBy?`
+              <div style="background:#f0f7f0;border-radius:6px;padding:4px 8px;margin-top:4px;display:inline-block">
+                🎁 <b style="color:#1b4332">Regalado por: ${esc(g.claimedBy)}</b>
+              </div>`:''}
               ${g.deliveryInHand===true?' · 🤝 Lo trae en mano':g.deliveryInHand===false?' · 📦 Lo envía':''}
               ${g.digitalContact?' · 📧 '+esc(g.digitalContact):''}
             </div>`
@@ -1697,7 +1689,7 @@ async function giftMoney(code,gid){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:1.2rem;font-weight:700;color:#1b4332">$</span>
         <input id="montoAporte" type="text" inputmode="numeric" placeholder="Ej: 50.000"
-          oninput="formatAmount(this)"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"
           style="flex:1;font-size:1rem;font-weight:700">
       </div>
       ${falta>0&&precio>0?`<p style="font-size:.75rem;color:var(--muted);margin:6px 0 0">Podés aportar lo que quieras — falta cubrir $${falta.toLocaleString('es-AR')}</p>`:''}
@@ -2303,7 +2295,7 @@ function getShareUrl(guestLink){
   return guestLink;
 }
 
-async function generateQRCard(code, owner, alias, aliasName){
+async function generateQRCard(code, owner, alias){
   return new Promise((resolve,reject)=>{
     // Generar QR client-side con QRCode.js (sin CORS)
     const tmp=document.createElement('div');
@@ -2319,7 +2311,7 @@ async function generateQRCard(code, owner, alias, aliasName){
     }catch(e){ document.body.removeChild(tmp); reject(e); return; }
 
     setTimeout(()=>{
-      const qrImg=tmp.querySelector('canvas')||tmp.querySelector('img');
+      const qrImg=tmp.querySelector('img')||tmp.querySelector('canvas');
       if(!qrImg){ document.body.removeChild(tmp); reject(new Error('QR no generado')); return; }
 
       const hasAlias=!!alias;
@@ -2376,7 +2368,7 @@ async function generateQRCard(code, owner, alias, aliasName){
         ctx.fillStyle='#1d5c40'; ctx.font='bold 20px Arial,sans-serif';
         ctx.fillText(alias,230,454);
         ctx.fillStyle='#888'; ctx.font='11px Arial,sans-serif';
-        ctx.fillText(aliasName?('a nombre de '+aliasName):'alias / CBU / CVU',230,474);
+        ctx.fillText('alias / CBU / CVU',230,474);
       }
 
       const sepY=hasAlias?498:400;
@@ -2860,7 +2852,6 @@ function showPrivacy(){
 }
 
 function clearLastList(){
-  if(!confirm('Esto solo saca el acceso directo de esta pantalla — tu lista NO se borra, sigue existiendo.\n\n¿Querés sacar el acceso directo igual?')) return;
   try{localStorage.removeItem('lastOwnerCode');localStorage.removeItem('lastOwnerTitle');}catch(e){}
   renderHome();
 }
@@ -2890,7 +2881,7 @@ const COMING_SOON = false;
 (async function init(){
   if(COMING_SOON){ renderComingSoon(); return; }
   const h=getHash();
-  if(h.o) renderOwner(h.o, h.step?parseInt(h.step):1);
+  if(h.o) renderOwner(h.o);
   else if(h.g) renderGuest(h.g);
   else renderHome();
 })();
@@ -2925,7 +2916,7 @@ window.addEventListener('hashchange',function(){
   if(_showingCreated) return;
   clearTimeout(window._ownerTimer);clearTimeout(window._guestTimer);
   const h=getHash();
-  if(h.o) renderOwner(h.o, h.step?parseInt(h.step):1);
+  if(h.o) renderOwner(h.o);
   else if(h.g) renderGuest(h.g);
   else renderHome();
 });
