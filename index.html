@@ -1006,6 +1006,52 @@ async function renderOwner(code,step){
     <p style="margin:0 0 8px;font-weight:700;color:#1a3d28">🎁 ¿Querés ver quién te regaló cada cosa?</p>
     <button data-a="revealGivers" data-x="${esc(code)}" style="width:100%;padding:12px;font-weight:700;background:#1d5c40;color:#fff;border:none;border-radius:8px;cursor:pointer">🎁 Ver quién regaló cada cosa</button>
   </div>`:'';
+  // ── Pantalla especial para período de gracia ──
+  if(isInGrace(data)){
+    const giftRows=(data.gifts||[]).filter(g=>g.claimedBy).map(g=>`
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;background:#fff">
+        <p style="margin:0 0 2px;font-size:.88rem;font-weight:700">${esc(g.name)}</p>
+        ${data.revealed&&g.claimedBy?`
+          <div style="background:#f0f7f0;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">
+            🎁 <b style="color:#1b4332">Regalado por: ${esc(g.claimedBy)}</b>
+          </div>`:`<p style="margin:4px 0 0;font-size:.78rem;color:var(--muted)">🔒 Reservado (activá la revelación arriba)</p>`}
+      </div>`).join('');
+    const ungifted=(data.gifts||[]).filter(g=>!g.claimedBy).length;
+    render(`
+      <div style="text-align:center;padding:16px 0 8px">
+        <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+        <h1 style="margin:0 0 4px">${esc(data.title||'Mi lista')}</h1>
+        <p style="color:var(--muted);font-size:.82rem;margin:0 0 16px">¡Gracias por usar elregalo.com.ar!</p>
+      </div>
+      ${data.revealed?'':revealBtn}
+      <div class="card" style="background:#f0f7f0">
+        <h3 style="margin:0 0 12px;color:#1b4332">🎁 Regalos recibidos (${(data.gifts||[]).filter(g=>g.claimedBy).length})</h3>
+        ${giftRows||'<p style="color:var(--muted);font-size:.82rem">Nadie eligió regalos.</p>'}
+        ${ungifted?`<p style="margin:8px 0 0;font-size:.78rem;color:var(--muted)">${ungifted} regalo${ungifted>1?'s':''} sin elegir.</p>`:''}
+      </div>
+      <div class="card" style="text-align:center;background:#e8f4fd;border-color:#aed6f1">
+        <p style="margin:0 0 4px;font-size:.88rem;font-weight:700;color:#1a3d28">¿Te gustó elregalo.com.ar?</p>
+        <p style="margin:0 0 12px;font-size:.8rem;color:var(--muted)">Recomendáselo a tus amigos para su próxima lista.</p>
+        <button id="btnSharePromo" style="width:100%;padding:12px;font-weight:700;background:#1d5c40;color:#fff;border:none;border-radius:10px;cursor:pointer">
+          📤 Compartir elregalo.com.ar
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="ghost" data-a="home" style="flex:1;padding:12px">🏠 Inicio</button>
+        <button class="ghost" data-a="deleteList" data-x="${esc(code)}" style="flex:1;padding:12px;color:#c0392b;border-color:#c0392b">🗑️ Borrar</button>
+      </div>
+      <footer>elregalo.com.ar · Gratis · Hecho en Argentina por Agus - Rodo</footer>`);
+    setTimeout(()=>{
+      const btn=document.getElementById('btnSharePromo');
+      if(btn) btn.addEventListener('click',()=>{
+        const msg='🎁 Usá elregalo.com.ar para tu próxima lista de regalos!\n\nCreás tu lista, la compartís con tus invitados y cada uno elige qué regalarte — sin spoilers y sin repetidos.\n\n✓ Gratis  ✓ Sin registro  ✓ Hecho en Argentina 🇦🇷\n\nhttps://elregalo.com.ar';
+        if(navigator.share){ navigator.share({title:'elregalo.com.ar',text:msg,url:'https://elregalo.com.ar'}).catch(()=>{}); }
+        else { navigator.clipboard&&navigator.clipboard.writeText(msg); alert('¡Texto copiado! Pegalo donde quieras.'); }
+      });
+    },200);
+    return;
+  }
+
   render(`
     <div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">Panel del organizador · Evento: ${eventDateStr} · ${daysLeft>0?daysLeft+' días restantes':'Evento pasado'}</div>
     <h1>${esc(data.title||'Mi lista')}</h1>
@@ -1356,7 +1402,7 @@ function ownerGiftList(data,code){
           : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-        ${g.claimedBy?`<button class="ghost sm" data-a="freeGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Liberar</button>`:''}
+        ${g.claimedBy&&!isInGrace(data)?`<button class="ghost sm" data-a="freeGift" data-x="${esc(code)}" data-y="${esc(g.id)}">Liberar</button>`:''}
         <button class="ghost sm" style="color:#c0392b;border-color:#c0392b" data-a="deleteGift" data-x="${esc(code)}" data-y="${esc(g.id)}">✕</button>
       </div>
     </div>
