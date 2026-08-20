@@ -1008,20 +1008,40 @@ async function renderOwner(code,step){
   </div>`:'';
   // ── Pantalla especial para período de gracia ──
   if(isInGrace(data)){
-    const giftRows=(data.gifts||[]).filter(g=>g.claimedBy).map(g=>`
+    const giftRows=(data.gifts||[]).filter(g=>g.claimedBy||((data.moneyDonations||[]).some(d=>d.giftId===g.id))).map(g=>{
+      const donations=(data.moneyDonations||[]).filter(d=>d.giftId===g.id);
+      const totalAportado=donations.reduce((s,d)=>s+(d.amountNum||0),0);
+      const precio=parseArgNum(g.price)||0;
+      const pct=precio>0?Math.min(100,Math.round(totalAportado/precio*100)):0;
+      return `
       <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;background:#fff">
         <p style="margin:0 0 2px;font-size:.88rem;font-weight:700">${esc(g.name)}</p>
+        ${precio?`<p style="margin:0 0 6px;font-size:.75rem;color:var(--muted)">Valor estimado: $${precio.toLocaleString('es-AR')}</p>`:''}
         ${data.revealed&&g.claimedBy?`
-          <div style="background:#f0f7f0;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">
+          <div style="background:#f0f7f0;border-radius:6px;padding:4px 10px;margin-top:4px;display:inline-block">
             🎁 <b style="color:#1b4332">Regalado por: ${esc(g.claimedBy)}</b>
-          </div>`:`<p style="margin:4px 0 0;font-size:.78rem;color:var(--muted)">🔒 Reservado (activá la revelación arriba)</p>`}
-      </div>`).join('');
-    const ungifted=(data.gifts||[]).filter(g=>!g.claimedBy).length;
+          </div>`:g.claimedBy?`<p style="margin:4px 0;font-size:.78rem;color:var(--muted)">🔒 Reservado</p>`:''}
+        ${donations.length?`
+          <div style="margin-top:8px">
+            ${donations.map(d=>`<p style="margin:0 0 2px;font-size:.78rem;color:#555">💸 ${esc(d.gifterName||d.name||'Anónimo')} aportó <b>${esc(d.amount||'$'+d.amountNum)}</b></p>`).join('')}
+            ${precio&&totalAportado?`
+            <div style="margin-top:6px">
+              <div style="background:#e0e0e0;border-radius:20px;height:8px;overflow:hidden;margin-bottom:3px">
+                <div style="background:${pct>=100?'#27ae60':'var(--accent)'};height:100%;width:${pct}%;border-radius:20px"></div>
+              </div>
+              <p style="font-size:.72rem;color:${pct>=100?'#27ae60':'var(--accent)'};margin:0;font-weight:700">
+                $${totalAportado.toLocaleString('es-AR')} aportado (${pct}%) ${pct>=100?'✅ ¡Cubierto!':''}
+              </p>
+            </div>`:''}
+          </div>`:''}
+      </div>`;}).join('');
+    const ungifted=(data.gifts||[]).filter(g=>!g.claimedBy&&!(data.moneyDonations||[]).some(d=>d.giftId===g.id)).length;
     render(`
       <div style="text-align:center;padding:16px 0 8px">
         <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
-        <h1 style="margin:0 0 4px">${esc(data.title||'Mi lista')}</h1>
-        <p style="color:var(--muted);font-size:.82rem;margin:0 0 16px">¡Gracias por usar elregalo.com.ar!</p>
+        <h1 style="margin:0 0 6px">${esc(data.title||'Mi lista')}</h1>
+        <p style="color:#1b4332;font-size:.88rem;font-weight:600;margin:0 0 4px">¡Gracias por usar elregalo.com.ar!</p>
+        <p style="color:var(--muted);font-size:.82rem;margin:0 0 16px">Esperamos que el evento haya salido muy lindo. 🥳</p>
       </div>
       ${data.revealed?'':revealBtn}
       <div class="card" style="background:#f0f7f0">
